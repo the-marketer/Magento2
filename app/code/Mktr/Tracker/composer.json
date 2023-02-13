@@ -1,0 +1,18 @@
+{
+  "name": "mktr/tracker",
+  "description": "theMarketer Magento 2",
+  "type": "magento2-module",
+  "require": {
+    "php": ">=7.1.0"
+  },
+  "license": "OSL-3.0",
+  "version": "1",
+  "autoload": {
+    "files": [
+      "registration.php"
+    ],
+    "psr-4": {
+      "Mktr\\Tracker\\": ""
+    }
+  }
+}

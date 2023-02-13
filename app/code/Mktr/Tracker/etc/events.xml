@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:Event/etc/events.xsd">
+    <event name="admin_system_config_changed_section_mktr_tracker">
+        <observer name="mktr_tracker_admin_system_config_changed" instance="Mktr\Tracker\Observer\Events"/>
+    </event>
+    <event name="sales_order_save_after">
+        <observer name="mktr_tracker_sales_order_save_after" instance="Mktr\Tracker\Observer\Events"/>
+    </event>
+</config>

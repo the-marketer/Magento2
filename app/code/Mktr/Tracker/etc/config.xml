@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * @copyright   © EAX LEX SRL. All rights reserved.
+ * @license     http://opensource.org/licenses/osl-3.0.php - Open Software License (OSL 3.0)
+ **/
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Store:etc/config.xsd">
+    <default>
+        <mktr_tracker>
+            <tracker>
+                <status>0</status>
+                <tracking_key/>
+                <rest_key/>
+                <customer_id/>
+                <cron_feed>0</cron_feed>
+                <update_feed>4</update_feed>
+                <cron_review>0</cron_review>
+                <update_review>4</update_review>
+                <opt_in>0</opt_in>
+                <push_status>0</push_status>
+                <default_stock>0</default_stock>
+                <allow_export>0</allow_export>
+                <selectors>.btn-cart</selectors>
+            </tracker>
+            <attribute>
+                <brand>manufacturer</brand>
+                <color>color</color>
+                <size>size</size>
+            </attribute>
+        </mktr_tracker>
+    </default>
+</config>
