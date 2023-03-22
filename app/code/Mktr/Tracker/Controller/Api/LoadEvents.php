@@ -47,14 +47,14 @@ class LoadEvents extends Action
         foreach (self::getHelp()->getConfig->getEventsObs() as $event=>$Name)
         {
             if (!$Name[0]) {
-                $fName = "get".vsprintf(self::getHelp()->getSessionName, array($event));
+                $fName = "get".self::getHelp()->getSessionName.$event;
 
                 $eventData = self::getHelp()->getSession->{$fName}();
 
                 if ($eventData) {
                     $lines[] = "dataLayer.push(".self::getHelp()->getManager->getEvent($Name[1], $eventData)->toJson().");";
 
-                    $uName = "uns".vsprintf(self::getHelp()->getSessionName, array($event));
+                    $uName = "uns".self::getHelp()->getSessionName.$event;
                     self::getHelp()->getSession->{$uName}();
                 }
             }

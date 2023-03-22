@@ -11,8 +11,9 @@ use Magento\Framework\App\Helper\Context;
 
 class Data extends AbstractHelper
 {
+    /* TODO : UPDATE */
 
-    const sessionName = "Mk%s";
+    const sessionName = "Mk";
     const space = PHP_EOL . "        ";
 
     private static $inst = null;
@@ -31,6 +32,7 @@ class Data extends AbstractHelper
         "getWebsite" => [null,'getWebsite','\Magento\Store\Model\StoreManagerInterface'],
         "getBaseUrl" => [null,'getBaseUrl','\Magento\Store\Model\StoreManagerInterface'],
         "getStore" => [null,'getStore','\Magento\Store\Model\StoreManagerInterface'],
+        "getStoreManager" => [null,'get','\Magento\Store\Model\StoreManagerInterface'],
         "getStoreRepo" => [null,'get','\Magento\Store\Model\StoreRepository'],
         "getCustomerGroup" => [null,'create','\Magento\Customer\Model\Group'],
         "getCustomerSession" => [null,'create','\Magento\Customer\Model\Session'],
@@ -83,13 +85,13 @@ class Data extends AbstractHelper
                 self::$ins[$property][0] = self::init()->get(self::$ins[$property][2]);
             } else if (self::$ins[$property][1] == 'getWebsite')
             {
-                self::$ins[$property][0] = self::init()->get(self::$ins[$property][2])->getWebsite();
+                self::$ins[$property][0] = self::$helper->getStoreManager->getWebsite();
             } else if (self::$ins[$property][1] == 'getBaseUrl')
             {
-                self::$ins[$property][0] = self::init()->get(self::$ins[$property][2])->getStore()->getBaseUrl();
+                self::$ins[$property][0] = self::$helper->getStoreManager->getStore()->getBaseUrl();
             } else if (self::$ins[$property][1] == 'getStore')
             {
-                self::$ins[$property][0] = self::init()->get(self::$ins[$property][2])->getStore();
+                self::$ins[$property][0] = self::$helper->getStoreManager->getStore();
             }else if (self::$ins[$property][1] == 'create')
             {
                 self::$ins[$property][0] = self::init()->create(self::$ins[$property][2]);

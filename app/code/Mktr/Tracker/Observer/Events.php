@@ -334,7 +334,8 @@ class Events implements ObserverInterface
     /** @noinspection PhpReturnValueOfMethodIsNeverUsedInspection */
     private static function MktrSessionSet()
     {
-        $fName = vsprintf(self::getHelp()->getSessionName, self::$eventName);
+        /* TODO : UPDATE */
+        $fName = self::getHelp()->getSessionName.self::$eventName;
 
         self::getHelp()->getSession->{"set".$fName}(self::$eventData);
         return self::$eventAction;

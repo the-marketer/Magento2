@@ -56,7 +56,7 @@ class SaveOrder extends Action
         $result = self::getHelp()->getPageRaw;
         $result->setHeader('Content-type', 'application/javascript; charset=utf-8;', 1);
 
-        $fName = vsprintf(self::getHelp()->getSessionName, array('saveOrder'));
+        $fName = self::getHelp()->getSessionName.'saveOrder';
         $sOrder = self::getHelp()->getSession->{"get".$fName}();
 
         if ($sOrder !== null) {
@@ -68,7 +68,7 @@ class SaveOrder extends Action
             {
                 if (!empty($sOrder["email_address"]))
                 {
-                    $fNameS = "set".vsprintf(self::getHelp()->getSessionName, array('setEmail'));
+                    $fNameS = "set".self::getHelp()->getSessionName.'setEmail';
                     self::getHelp()->getSession->{$fNameS}(
                         self::getHelp()->getManager->schemaValidate(
                             $sOrder, self::getHelp()->getManager->getEventsSchema('setEmail')
@@ -78,7 +78,7 @@ class SaveOrder extends Action
 
                 if (!empty($sOrder["phone"]))
                 {
-                    $fNameS = "set".vsprintf(self::getHelp()->getSessionName, array('setPhone'));
+                    $fNameS = "set".self::getHelp()->getSessionName.'setPhone';
                     self::getHelp()->getSession->{$fNameS}([ 'phone' => $sOrder["phone"] ]);
                 }
             }

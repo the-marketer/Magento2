@@ -82,7 +82,7 @@ class Loader extends Template
 
         foreach (self::getHelp()->getConfig->getEventsObs() as $event=>$Name)
         {
-            $fName = vsprintf(self::getHelp()->getSessionName, array($event));
+            $fName = self::getHelp()->getSessionName.$event;
 
             $eventData = self::getHelp()->getSession->{"get".$fName}();
             if ($eventData)

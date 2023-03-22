@@ -90,7 +90,21 @@ class Func
     public static function getStoreId()
     {
         if (self::$storeID == null) {
-            self::$storeID = self::getHelp()->getStore->getStoreId();
+            $store = self::getHelp()->getRequest->getParam('store', false);
+            
+            if ($store !== false) {
+                if (is_int($store)) {
+                    $store = self::getHelp()->getStoreManager->getStoreById($store)->getId();
+                } else {
+                    $store = self::getHelp()->getStoreManager->getStore($store)->getId();
+                }
+            }
+
+            if ($store) {
+                self::$storeID = $store; 
+            } else {
+                self::$storeID = self::getHelp()->getStore->getStoreId();
+            }
         }
         return self::$storeID;
     }

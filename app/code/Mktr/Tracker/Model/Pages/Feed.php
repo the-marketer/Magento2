@@ -71,7 +71,7 @@ class Feed
 
     public static function getProductById($id)
     {
-        return self::buildProduct(self::getHelp()->getProduct->getById($id));
+        return self::buildProduct(self::getHelp()->getProduct->getById($id, false, self::getHelp()->getFunc->getStoreId()));
     }
 
     /** @noinspection PhpUnused */
@@ -162,7 +162,7 @@ class Feed
         $MasterQty = (int) (self::getHelp()->getStockRepo->getStockItem($product->getId())->getQty() ?? 0);
 
         if($product->getTypeId() == 'configurable') {
-            $product->getTypeInstance()->getUsedProducts($product);
+            // $product->getTypeInstance()->getUsedProducts($product);
 
             $variants = $product->getTypeInstance()->getUsedProducts($product);
             foreach ($variants as $p) {

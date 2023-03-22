@@ -55,7 +55,7 @@ class setEmail extends Action
         $result->setHeader('Content-type', 'application/javascript; charset=utf-8;', 1);
 
         $lines = "";
-        $fName = vsprintf(self::getHelp()->getSessionName, array('setEmail'));
+        $fName = self::getHelp()->getSessionName.'setEmail';
         $sEmail = self::getHelp()->getSession->{"get".$fName}();
 
         if ($sEmail !== null) {
@@ -102,7 +102,7 @@ class setEmail extends Action
 
             if (self::getHelp()->getApi->getStatus() == 200)
             {
-                $fNameP = vsprintf(self::getHelp()->getSessionName, array('setPhone'));
+                $fNameP = self::getHelp()->getSessionName . 'setPhone';
                 if (self::getHelp()->getSession->{"get".$fNameP}()) {
                     self::getHelp()->getSession->{"uns".$fNameP}();
                 }
