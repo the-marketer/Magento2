@@ -18,3 +18,12 @@ cd path_to_the_store_root_folder
 sh mktr/mktr.sh uninstall # or 
 sh mktr/mktr.sh uninstall php7.4 # if you have multiple php versions you can add it 
 ```
+
++ Param "store"
++ remove vsprintf
+
++ Use as
++ /mktr/api/Feed?key={REST_KEY}&store={STORE_ID|STORE_CODE}
+
++ Magento 2 Default
++ /mktr/api/Feed?key={REST_KEY}&___store={STORE_CODE}

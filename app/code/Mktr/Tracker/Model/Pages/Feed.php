@@ -1,8 +1,12 @@
 <?php
 /**
- * @copyright   © EAX LEX SRL. All rights reserved.
+ * @copyright   Copyright (c) 2023 TheMarketer.com
+ * @project     TheMarketer.com
+ * @website     https://themarketer.com/
+ * @author      Alexandru Buzica (EAX LEX S.R.L.) <b.alex@eax.ro>
  * @license     http://opensource.org/licenses/osl-3.0.php - Open Software License (OSL 3.0)
- **/
+ * @docs:       https://themarketer.com/resources/api
+ */
 
 namespace Mktr\Tracker\Model\Pages;
 
@@ -264,7 +268,9 @@ class Feed
             'id' => $product->getId(),
             'sku' => $product->getSku(),
             'name' => ['@cdata'=>$product->getName()],
-            'description' => ['@cdata'=>$product->getDescription()],
+            'description' => [
+                '@cdata' => preg_replace('/[\x00-\x1F\x80-\xFF]/', '', $product->getDescription())
+            ],
             'url' => $product->getProductUrl(),
             'main_image' => self::getProductImage($product),
             'category' => [ '@cdata' => $listCategory ],
