@@ -6,10 +6,12 @@
  * @website     https://themarketer.com/
  * @author      Alexandru Buzica (EAX LEX S.R.L.) <b.alex@eax.ro>
  * @license     http://opensource.org/licenses/osl-3.0.php - Open Software License (OSL 3.0)
- * @docs:       https://themarketer.com/resources/api
+ * @docs        https://themarketer.com/resources/api
  */
 
 namespace Mktr\Tracker\Model;
+
+use Exception;
 
 class Func
 {
@@ -91,21 +93,31 @@ class Func
         self::$storeID = $id;
     }
 
+    public static function getWebsiteId($store)
+    {
+        try {
+            return self::getHelp()->getStoreManager->getWebsite($store)->getDefaultGroup()->getDefaultStoreId();
+        } catch(Exception $e) {
+            return false;
+        }
+    }
+
     public static function getStoreId()
     {
+        
         if (self::$storeID == null) {
             $store = self::getHelp()->getRequest->getParam('store', false);
             
             if ($store !== false) {
-                if (is_int($store)) {
-                    $store = self::getHelp()->getStoreManager->getStoreById($store)->getId();
-                } else {
-                    $store = self::getHelp()->getStoreManager->getStore($store)->getId();
+                try {
+                   $store = self::getHelp()->getStoreManager->getStore($store)->getId();
+                } catch(Exception $e) {
+                    $store = self::getWebsiteId($store);
                 }
             }
-
-            if ($store) {
-                self::$storeID = $store; 
+            if ($store !== false) {
+                self::$storeID = $store;
+                self::getHelp()->getStoreManager->setCurrentStore($store);
             } else {
                 self::$storeID = self::getHelp()->getStore->getStoreId();
             }

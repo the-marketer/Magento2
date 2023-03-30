@@ -5,11 +5,12 @@
  * @website     https://themarketer.com/
  * @author      Alexandru Buzica (EAX LEX S.R.L.) <b.alex@eax.ro>
  * @license     http://opensource.org/licenses/osl-3.0.php - Open Software License (OSL 3.0)
- * @docs:       https://themarketer.com/resources/api
+ * @docs        https://themarketer.com/resources/api
  */
 
 namespace Mktr\Tracker\Model\Pages;
 
+use Exception;
 use Magento\Catalog\Model\Product\Attribute\Source\Status;
 use Magento\Catalog\Model\Product\Visibility;
 
@@ -75,24 +76,42 @@ class Feed
 
     public static function getProductById($id)
     {
-        return self::buildProduct(self::getHelp()->getProduct->getById($id, false, self::getHelp()->getFunc->getStoreId()));
+        try {
+            $product = self::getHelp()->getProduct->getById($id, false, self::getHelp()->getFunc->getStoreId(), true);
+            return self::buildProduct($product);
+        } catch (Exception $e){
+            return false;
+        }
     }
 
     /** @noinspection PhpUnused */
     public static function getProductBySku($sku)
     {
-        return self::buildProduct(self::getHelp()->getProduct->get($sku));
+        try {
+            $product = self::getHelp()->getProduct->get($sku, false, self::getHelp()->getFunc->getStoreId(), true);
+            return self::buildProduct($product);
+        } catch (Exception $e){
+            return false;
+        }
     }
 
     public static function freshData(): array
     {
         $or = [];
+        $stop = false;
 
         self::$params = self::getHelp()->getRequest->getParams();
 
         self::$attr['brand'] = self::getHelp()->getConfig->getBrandAttribute();
         self::$attr['color'] = self::getHelp()->getConfig->getColorAttribute();
         self::$attr['size'] = self::getHelp()->getConfig->getSizeAttribute();
+
+        if (isset(self::$params['page'])) {
+            $stop = true;
+            self::$params['page'] = (int) self::$params['page'];
+        } else {
+            self::$params['page'] = 1;
+        }
 
         self::$params['page'] = (int) (self::$params['page'] ?? 1);
         self::$params['limit'] = (int) (self::$params['limit'] ?? 50);
@@ -103,11 +122,13 @@ class Feed
             ->setOrder('created_at', 'ASC')
             ->addAttributeToSelect(array('id'))
             ->addStoreFilter(self::getHelp()->getFunc->getStoreId())
+            // ->setStoreId(self::getHelp()->getFunc->getStoreId())
+            // ->addWebsiteFilter(self::getHelp()->getFunc->getStoreId())
             // ->addFieldToFilter('store_id',array('in', self::getHelp()->getFunc->getStoreId()))
             ->addAttributeToFilter('visibility', array('neq' => Visibility::VISIBILITY_NOT_VISIBLE))
             ->addAttributeToFilter('status', Status::STATUS_ENABLED);
 
-        $pages = self::$data['products']->getLastPageNumber();
+        $pages = $stop ? self::$params['page'] : self::$data['products']->getLastPageNumber();
 
         do {
             self::$data['products']->setCurPage(self::$params['page'])->load();
@@ -118,10 +139,8 @@ class Feed
                     $or[] = $oo;
                 }
             }
-
             self::$params['page']++;
             self::$data['products']->clear();
-
         } while (self::$params['page'] <= $pages);
 
         return $or;
@@ -129,6 +148,7 @@ class Feed
 
     public static function buildProduct($product)
     {
+        // $product->setStoreId(self::getHelp()->getFunc->getStoreId());
         $listCategory = self::getHelp()->getManager->buildMultiCategory($product->getCategoryIds());
 
         $price = $product->getPrice();

@@ -5,14 +5,12 @@
  * @website     https://themarketer.com/
  * @author      Alexandru Buzica (EAX LEX S.R.L.) <b.alex@eax.ro>
  * @license     http://opensource.org/licenses/osl-3.0.php - Open Software License (OSL 3.0)
- * @docs:       https://themarketer.com/resources/api
+ * @docs        https://themarketer.com/resources/api
  */
+
 namespace Mktr\Tracker\Controller\Api;
 
 use Magento\Framework\App\Action\Action;
-use Mktr\Tracker\Model\MktrAction;
-use Mktr\Tracker\Model\MktrApi;
-use Mktr\Tracker\Model\MktrHelp;
 
 class Reviews extends Action
 {
