@@ -50,70 +50,87 @@ class setEmail extends Action
 
     public function execute()
     {
+        $lines = "";
         $result = self::getHelp()->getPageRaw;
         $result->setHeader('Content-type', 'application/javascript; charset=utf-8;', 1);
-
-        $lines = "";
+        
+        $tApi = self::getHelp()->getSessionName."Api";
         $fName = self::getHelp()->getSessionName.'setEmail';
-        $sEmail = self::getHelp()->getSession->{"get".$fName}();
 
-        if ($sEmail !== null) {
-            /** @noinspection DuplicatedCode */
-            $nws = self::getSubscriber()->loadByEmail($sEmail["email_address"]);
+        $sApi = self::getHelp()->getSession->{"get".$tApi}();
 
-            $info = array(
-                "email" => $sEmail['email_address']
-            );
+        if ($sApi !== null) {
+            $sEmail = self::getHelp()->getSession->{"get".$fName}();
+            if ($sEmail !== null) {
+                /** @noinspection DuplicatedCode */
+                $nws = self::getSubscriber()->loadByEmail($sEmail["email_address"]);
 
-            if ($nws && $nws->getStatus() == \Magento\Newsletter\Model\Subscriber::STATUS_SUBSCRIBED)
-            {
-                $customer = self::getHelp()->getCustomerData
-                    ->setWebsiteId(self::getHelp()->getWebsite->getId())
-                    ->loadByEmail($sEmail['email_address']);
-                $customerAddressId = $customer->getDefaultShipping();
-                if ($customerAddressId) {
-                    $address = self::getHelp()->getCustomerAddress
-                        ->load($customer->getDefaultShipping());
+                $info = array(
+                    "email" => $sEmail['email_address']
+                );
 
-                    $customerData = $address->getData();
-                    $info["phone"] = self::getHelp()->getFunc->validateTelephone($customerData['telephone']);
-                }
-                if ($customer->getName() !== null && $customer->getName() !== ' ') {
-                    $info["name"] = $customer->getName();
-                } else if ($customer->getFirstname() === null && $customer->getLastname() === null) {
-                    $info["name"] = explode("@",$customer->getEmail())[0];
-                } else if ($customer->getFirstname() !== null && $customer->getLastname() !== null) {
-                    $info["name"] = $customer->getFirstname().' '.$customer->getLastname();
-                } else if ($customer->getFirstname() !== null) {
-                    $info["name"] = $customer->getFirstname();
-                } else  if ($customer->getLastname() !== null) {
-                    $info["name"] = $customer->getLastname();
+                if ($nws && $nws->getStatus() == \Magento\Newsletter\Model\Subscriber::STATUS_SUBSCRIBED)
+                {
+                    $customer = self::getHelp()->getCustomerData
+                        ->setWebsiteId(self::getHelp()->getWebsite->getId())
+                        ->loadByEmail($sEmail['email_address']);
+                    $customerAddressId = $customer->getDefaultShipping();
+                    if ($customerAddressId) {
+                        $address = self::getHelp()->getCustomerAddress
+                            ->load($customer->getDefaultShipping());
+
+                        $customerData = $address->getData();
+                        $info["phone"] = self::getHelp()->getFunc->validateTelephone($customerData['telephone']);
+                    }
+                    if ($customer->getName() !== null && $customer->getName() !== ' ') {
+                        $info["name"] = $customer->getName();
+                    } else if ($customer->getFirstname() === null && $customer->getLastname() === null) {
+                        $info["name"] = explode("@",$customer->getEmail())[0];
+                    } else if ($customer->getFirstname() !== null && $customer->getLastname() !== null) {
+                        $info["name"] = $customer->getFirstname().' '.$customer->getLastname();
+                    } else if ($customer->getFirstname() !== null) {
+                        $info["name"] = $customer->getFirstname();
+                    } else  if ($customer->getLastname() !== null) {
+                        $info["name"] = $customer->getLastname();
+                    } else {
+                        $info["name"] = explode("@",$sEmail['email'])[0];
+                    }
+
+                    self::getHelp()->getApi->send("add_subscriber", $info);
+                    $lines = "setEmailAdd";
                 } else {
-                    $info["name"] = explode("@",$sEmail['email'])[0];
+                    self::getHelp()->getApi->send("remove_subscriber", $info);
+                    $lines = "setEmailRemove";
                 }
 
-                self::getHelp()->getApi->send("add_subscriber", $info);
-                $lines = "setEmailAdd";
+                if (self::getHelp()->getApi->getStatus() == 200)
+                {
+                    $fNameP = self::getHelp()->getSessionName . 'setPhone';
+                    if (self::getHelp()->getSession->{"get".$fNameP}()) {
+                        self::getHelp()->getSession->{"uns".$fNameP}();
+                    }
+                    self::getHelp()->getSession->{"uns".$fName}();
+                }
+
+                /** TODO Magento 1 - setBody() | Magento 2 - setContents()  */
+                $result->setContents("console.log('".$lines."', '".
+                    self::getHelp()->getApi->getStatus()."', '".
+                    self::getHelp()->getApi->getBody()."', '".
+                    self::getHelp()->getApi->getUrl()."','".
+                    json_encode(self::getHelp()->getApi->getParam())."');");
             } else {
-                self::getHelp()->getApi->send("remove_subscriber", $info);
-                $lines = "setEmailRemove";
+                $result->setContents("console.log('null');");
             }
+            self::getHelp()->getSession->{"uns".$tApi}();
+        } else {
+            $fNameP = self::getHelp()->getSessionName . 'setPhone';
 
-            if (self::getHelp()->getApi->getStatus() == 200)
-            {
-                $fNameP = self::getHelp()->getSessionName . 'setPhone';
-                if (self::getHelp()->getSession->{"get".$fNameP}()) {
-                    self::getHelp()->getSession->{"uns".$fNameP}();
-                }
-                self::getHelp()->getSession->{"uns".$fName}();
+            if (self::getHelp()->getSession->{"get".$fNameP}()) {
+                self::getHelp()->getSession->{"uns".$fNameP}();
             }
+            self::getHelp()->getSession->{"uns".$fName}();
 
-            /** TODO Magento 1 - setBody() | Magento 2 - setContents()  */
-            $result->setContents("console.log('".$lines."', '".
-                self::getHelp()->getApi->getStatus()."', '".
-                self::getHelp()->getApi->getBody()."', '".
-                self::getHelp()->getApi->getUrl()."','".
-                json_encode(self::getHelp()->getApi->getParam())."');");
+            $result->setContents("console.log('null');");
         }
         return $result;
     }

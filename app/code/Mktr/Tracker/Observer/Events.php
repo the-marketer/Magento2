@@ -29,7 +29,7 @@ class Events implements ObserverInterface
         "checkout_onepage_controller_success_action" => "saveOrder",
         "multishipping_checkout_controller_success_action" => "saveOrder",
         "model_save_after" => "emailAndPhone",
-        "customer_register_success" => "RegisterOrLogIn",
+        "customer_register_success" => "Register",
         "customer_login" => "RegisterOrLogIn",
         /* "review_controller_product_init_after" => "Review", */
         "admin_system_config_changed_section_mktr_tracker" => "SaveButton",
@@ -237,10 +237,12 @@ class Events implements ObserverInterface
         /** TODO: Magento 2 - Subscriber - Magento 1 - Mage_Newsletter_Model_Subscriber*/
         /** @noinspection PhpUndefinedClassInspection */
         if ($object instanceof Subscriber) {
-
             if ($object->getEmail() === null) {
                 $object = self::getHelp()->getCustomerSession->getCustomer();
             }
+            
+            $tApi = self::getHelp()->getSessionName."Api";
+            self::getHelp()->getSession->{"set".$tApi}([ 'Sub' => true ]);
 
             if (!$object->getDefaultShipping()) {
                 $object1 = self::getHelp()->getCustomerData
@@ -250,7 +252,7 @@ class Events implements ObserverInterface
                     $object = $object1;
                 }
             }
-
+            
             $this->EmailSet($object);
 
             if ($object->getDefaultShipping()) {
@@ -266,7 +268,26 @@ class Events implements ObserverInterface
             }
         }
     }
+    /** @noinspection PhpUnused */
+    public function Register()
+    {        
+        $fName = self::getHelp()->getSessionName."Api";
+        self::getHelp()->getSession->{"set".$fName}([ 'Sub' => self::getHelp()->getRequest->getParam('is_subscribed') ]);
+        
+        $customer = self::$observer->getCustomer();
+        $this->EmailSet($customer);
 
+        if ($customer->getDefaultShipping()) {
+            self::$eventName = "setPhone";
+            $address = self::getHelp()->getCustomerAddress->load($customer->getDefaultShipping());
+
+            self::$eventData = array(
+                'phone' => self::getHelp()->getFunc->validateTelephone($address->getTelephone())
+            );
+
+            self::MktrSessionSet();
+        }
+    }
     /** @noinspection PhpUnused */
     public function RegisterOrLogIn()
     {
