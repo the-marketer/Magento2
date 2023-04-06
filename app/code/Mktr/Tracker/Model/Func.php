@@ -75,7 +75,7 @@ class Func
 
     public static function correctDate($date = null, $format = "Y-m-d H:i")
     {
-        return $date !== null ? date($format, strtotime($date)) : $date;
+        return $date !== null && $date != "0000-00-00 00:00:00" ? date($format, strtotime($date)) : null;
     }
 
     public static function getOutPut()

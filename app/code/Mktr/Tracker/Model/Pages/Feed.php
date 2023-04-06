@@ -151,9 +151,10 @@ class Feed
         // $product->setStoreId(self::getHelp()->getFunc->getStoreId());
         $listCategory = self::getHelp()->getManager->buildMultiCategory($product->getCategoryIds());
 
-        $price = $product->getPrice();
-
-        $finalPrice = $product->getFinalPrice();
+        // $price = $product->getPrice();
+        $price = $product->getPriceInfo()->getPrice('regular_price')->getValue();
+        // $finalPrice = $product->getFinalPrice();
+        $finalPrice = $product->getPriceInfo()->getPrice('final_price')->getValue();
 
         if (empty((float) $finalPrice) && empty((float) $price)) {
             return false;
