@@ -47,8 +47,7 @@ class Loader extends Template
 
     public static function actionName()
     {
-        if (self::$actionName === null)
-        {   /** TODO: Magento 2 */
+        if (self::$actionName === null) {   /** TODO: Magento 2 */
             self::$actionName = self::getHelp()->getRequest->getFullActionName();
         }
         return self::$actionName;
@@ -66,35 +65,31 @@ class Loader extends Template
     /** @noinspection PhpUnused */
     protected function _toHtml(): string
     {
-        if (self::getHelp()->getConfig->getStatus() === 0 || empty(self::getHelp()->getConfig->getKey()))
-        {
+        if (self::getHelp()->getConfig->getStatus() === 0 || empty(self::getHelp()->getConfig->getKey())) {
             return '';
         }
 
         $lines = [];
 
-        $lines[] = vsprintf(self::getHelp()->getConfig->getLoader(), array(self::getHelp()->getConfig->getKey()));
+        $lines[] = vsprintf(self::getHelp()->getConfig->getLoader(), [self::getHelp()->getConfig->getKey()]);
 
         $loadJS = [];
 
         $eventName = self::getEventName();
 
-        if ($eventName != null)
-        {
+        if ($eventName != null) {
             $lines[] = "dataLayer.push(".self::getHelp()->getManager->getEvent($eventName)->toJson().");";
         }
 
-        foreach (self::getHelp()->getConfig->getEventsObs() as $event=>$Name)
-        {
+        foreach (self::getHelp()->getConfig->getEventsObs() as $event => $Name) {
             $fName = self::getHelp()->getSessionName.$event;
 
             $eventData = self::getHelp()->getSession->{"get".$fName}();
-            if ($eventData)
-            {
+            if ($eventData) {
                 $lines[] = "dataLayer.push(".self::getHelp()->getManager->getEvent($Name[1], $eventData)->toJson().");";
                 if ($Name[0]) {
                     $loadJS[$event] = true;
-                }else {
+                } else {
                     self::getHelp()->getSession->{"uns".$fName}();
                 }
             }
@@ -102,8 +97,7 @@ class Loader extends Template
 
         $baseURL = self::getHelp()->getBaseUrl;
 
-        foreach ($loadJS as $k=>$v)
-        {
+        foreach ($loadJS as $k => $v) {
             $lines[] = '(function(){ let add = document.createElement("script"); add.async = true; add.src = "'.$baseURL.'mktr/api/'.$k.'"; let s = document.getElementsByTagName("script")[0]; s.parentNode.insertBefore(add,s); })();';
         }
 
@@ -130,6 +124,6 @@ class Loader extends Template
         $wh =  [self::getHelp()->getSpace(), implode(self::getHelp()->getSpace(), $lines)];
         $rep = ["%space%","%implode%"];
         /** @noinspection JSUnresolvedVariable */
-        return str_replace($rep,$wh,'<!-- Mktr Script Start -->%space%<script type="text/javascript">%space%%implode%%space%</script>%space%<!-- Mktr Script END -->');
+        return str_replace($rep, $wh, '<!-- Mktr Script Start -->%space%<script type="text/javascript">%space%%implode%%space%</script>%space%<!-- Mktr Script END -->');
     }
 }

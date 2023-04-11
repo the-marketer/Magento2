@@ -165,8 +165,7 @@ class Manager
 
     public static function getEvent($Name, $eventData = [])
     {
-        if (empty(self::eventsName[$Name]))
-        {
+        if (empty(self::eventsName[$Name])) {
             return false;
         }
 
@@ -178,7 +177,7 @@ class Manager
 
         self::$assets = [];
 
-        switch (self::$shName){
+        switch (self::$shName) {
             case "Category":
                 self::$assets['category'] = self::buildCategory(self::getHelp()->getRegistry('current_category'));
                 break;
@@ -196,8 +195,7 @@ class Manager
 
         self::build();
 
-        if (self::$cons == null)
-        {
+        if (self::$cons == null) {
             return new self(self::getHelp());
         } else {
             return self::$cons;
@@ -213,14 +211,14 @@ class Manager
     {
         $newOut = [];
 
-        foreach ($array as $key=>$val) {
-            if (isset($schema[$key])){
+        foreach ($array as $key => $val) {
+            if (isset($schema[$key])) {
                 if (is_array($val)) {
                     $newOut[$schema[$key]["@key"]] = self::schemaValidate($val, $schema[$key]["@schema"]);
                 } else {
                     $newOut[$schema[$key]] = $val;
                 }
-            } else if (is_array($val)){
+            } elseif (is_array($val)) {
                 $newOut[] = self::schemaValidate($val, $schema);
             }
         }
@@ -232,13 +230,12 @@ class Manager
     public static function buildMultiCategory($List)
     {
         self::$bMultiCat = [];
-        foreach ($List as $key=>$value) {
+        foreach ($List as $key => $value) {
             $categoryRegistry = self::getHelp()->getCategoryRepo->load($value);
             self::buildSingleCategory($categoryRegistry);
         }
 
-        if (empty(self::$bMultiCat))
-        {
+        if (empty(self::$bMultiCat)) {
             self::$bMultiCat[] = "Default Category";
         }
         return implode("|", array_reverse(self::$bMultiCat));
@@ -246,8 +243,7 @@ class Manager
 
     public static function buildSingleCategory($categoryRegistry)
     {
-        if ($categoryRegistry->getId() != 2)
-        {
+        if ($categoryRegistry->getId() != 2) {
             self::$bMultiCat[] = $categoryRegistry->getName();
 
             while ($categoryRegistry->getLevel() > 2) {
@@ -260,8 +256,7 @@ class Manager
     }
     public static function buildCategory($categoryRegistry)
     {
-        if ($categoryRegistry->getId() != 2)
-        {
+        if ($categoryRegistry->getId() != 2) {
             $build = [ $categoryRegistry->getName() ];
             while ($categoryRegistry->getLevel() > 2) {
 
@@ -276,12 +271,13 @@ class Manager
 
     public static function build()
     {
-        foreach (self::$assets as $key=>$val) {
+        foreach (self::$assets as $key => $val) {
             self::$data[$key] = $val;
         }
     }
 
-    public function toJson(){
+    public function toJson()
+    {
         return self::getHelp()->getFunc->toJson(self::$data);
     }
 }

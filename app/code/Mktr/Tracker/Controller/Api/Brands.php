@@ -28,7 +28,8 @@ class Brands extends Action
     private static $data;
     private static $url;
 
-    public function __construct(Context $context, Data $help) {
+    public function __construct(Context $context, Data $help)
+    {
         parent::__construct($context);
         self::$ins['Help'] = $help;
     }
@@ -54,8 +55,7 @@ class Brands extends Action
             'key' => 'Required|Key'
         ]);
 
-        if ($this->status())
-        {
+        if ($this->status()) {
             return self::getHelp()->getFunc->readOrWrite(self::$fileName, self::$secondName, $this);
         }
 

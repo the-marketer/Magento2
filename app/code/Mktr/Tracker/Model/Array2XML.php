@@ -182,8 +182,7 @@ class Array2XML
             );
         }
         if ($arr == null) {
-            foreach ($node_name as $key => $value)
-            {
+            foreach ($node_name as $key => $value) {
                 /** @noinspection PhpExpressionAlwaysNullInspection */
                 /** @noinspection PhpUnhandledExceptionInspection */
                 $xml->appendChild(self::convert($key, $value));

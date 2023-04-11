@@ -97,8 +97,7 @@ class Api
                 return false;
             }
 
-            if (self::$timeOut == null)
-            {
+            if (self::$timeOut == null) {
                 self::$timeOut = 1;
             }
 
@@ -110,8 +109,7 @@ class Api
 
             self::$requestType = $post;
 
-            if (self::$requestType)
-            {
+            if (self::$requestType) {
                 self::$lastUrl = $url;
             } else {
                 self::$lastUrl = $url .'?'. http_build_query(self::$params);

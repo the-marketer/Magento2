@@ -12,10 +12,10 @@ namespace Mktr\Tracker\Model;
 
 class Data
 {
-    private static $ins = array(
+    private static $ins = [
         "Help" => null,
         "Config" => null
-    );
+    ];
 
     private static $data;
     private static $storage = null;
@@ -24,11 +24,10 @@ class Data
     {
         self::$storage = self::getHelp()->getFileSystem->setWorkDirectory("Storage");
         $data = self::$storage->rFile("data.json");
-        if ($data !== null)
-        {
+        if ($data !== null) {
             self::$data = json_decode($data, true);
         } else {
-            self::$data = array();
+            self::$data = [];
         }
     }
 
@@ -44,8 +43,7 @@ class Data
 
     public function __get($name)
     {
-        if (!isset(self::$data[$name]))
-        {
+        if (!isset(self::$data[$name])) {
             if ($name == 'update_feed' || $name == 'update_review') {
                 self::$data[$name] = 0;
             } else {
@@ -68,8 +66,7 @@ class Data
 
     public static function addTo($name, $value, $key = null)
     {
-        if ($key === null)
-        {
+        if ($key === null) {
             self::$data[$name][] = $value;
         } else {
             self::$data[$name][$key] = $value;

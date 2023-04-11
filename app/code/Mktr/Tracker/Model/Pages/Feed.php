@@ -56,8 +56,7 @@ class Feed
 
     private static function buildImageUrl($img): string
     {
-        if (self::$imageLink === null)
-        {
+        if (self::$imageLink === null) {
             /** TODO: Magento 2 */
             self::$imageLink = self::getHelp()->getStore->getBaseUrl(\Magento\Framework\UrlInterface::URL_TYPE_MEDIA).'catalog/product';
         }
@@ -66,8 +65,7 @@ class Feed
 
     private static function getProductImage($product): string
     {
-        if (self::$imageLink === null)
-        {
+        if (self::$imageLink === null) {
             /** TODO: Magento 2 */
             self::$imageLink = self::getHelp()->getStore->getBaseUrl(\Magento\Framework\UrlInterface::URL_TYPE_MEDIA).'catalog/product';
         }
@@ -79,7 +77,7 @@ class Feed
         try {
             $product = self::getHelp()->getProduct->getById($id, false, self::getHelp()->getFunc->getStoreId(), true);
             return self::buildProduct($product);
-        } catch (Exception $e){
+        } catch (Exception $e) {
             return false;
         }
     }
@@ -90,7 +88,7 @@ class Feed
         try {
             $product = self::getHelp()->getProduct->get($sku, false, self::getHelp()->getFunc->getStoreId(), true);
             return self::buildProduct($product);
-        } catch (Exception $e){
+        } catch (Exception $e) {
             return false;
         }
     }
@@ -120,12 +118,12 @@ class Feed
             // ->getCollection()
             ->setPageSize(self::$params['limit'])
             ->setOrder('created_at', 'ASC')
-            ->addAttributeToSelect(array('id'))
+            ->addAttributeToSelect(['id'])
             ->addStoreFilter(self::getHelp()->getFunc->getStoreId())
             // ->setStoreId(self::getHelp()->getFunc->getStoreId())
             // ->addWebsiteFilter(self::getHelp()->getFunc->getStoreId())
             // ->addFieldToFilter('store_id',array('in', self::getHelp()->getFunc->getStoreId()))
-            ->addAttributeToFilter('visibility', array('neq' => Visibility::VISIBILITY_NOT_VISIBLE))
+            ->addAttributeToFilter('visibility', ['neq' => Visibility::VISIBILITY_NOT_VISIBLE])
             ->addAttributeToFilter('status', Status::STATUS_ENABLED);
 
         $pages = $stop ? self::$params['page'] : self::$data['products']->getLastPageNumber();
@@ -170,9 +168,9 @@ class Feed
 
         /** TODO: Magento 2 */
         $gal = self::getHelp()->getProductMedia->getList($product->getSku());
-        if($gal !== null) {
+        if ($gal !== null) {
             foreach ($gal as $img) {
-                if($img['disabled'] != '0' || $img['file'] === $product->getImage()) {
+                if ($img['disabled'] != '0' || $img['file'] === $product->getImage()) {
                     continue;
                 }
                 $media_gallery['image'][] = self::buildImageUrl($img['file']);
@@ -186,7 +184,7 @@ class Feed
         /** TODO: Magento 2 */
         $MasterQty = (int) (self::getHelp()->getStockRepo->getStockItem($product->getId())->getQty() ?? 0);
 
-        if($product->getTypeId() == 'configurable') {
+        if ($product->getTypeId() == 'configurable') {
             // $product->getTypeInstance()->getUsedProducts($product);
 
             $variants = $product->getTypeInstance()->getUsedProducts($product);
@@ -202,16 +200,14 @@ class Feed
                         'size' => null
                     ];
 
-                    foreach (self::$attr['color'] as $v)
-                    {
+                    foreach (self::$attr['color'] as $v) {
                         $attribute['color'] = $p->getAttributeText($v);
                         if (!empty($attribute['color'])) {
                             break;
                         }
                     }
 
-                    foreach (self::$attr['size'] as $v)
-                    {
+                    foreach (self::$attr['size'] as $v) {
                         $attribute['size'] = $p->getAttributeText($v);
                         if (!empty($attribute['size'])) {
                             break;
@@ -225,9 +221,9 @@ class Feed
                     /** @noinspection DuplicatedCode */
                     if ($qty < 0) {
                         $stock = self::getHelp()->getConfig->getDefaultStock();
-                    } else if ($p->isInStock() && $qty == 0) {
+                    } elseif ($p->isInStock() && $qty == 0) {
                         $stock = 2;
-                    } else if ($p->isInStock()){
+                    } elseif ($p->isInStock()) {
                         $stock = 1;
                     } else {
                         $stock = 0;
@@ -260,9 +256,9 @@ class Feed
         /** @noinspection DuplicatedCode */
         if ($MasterQty < 0) {
             $stock = self::getHelp()->getConfig->getDefaultStock();
-        } else if ($product->isInStock() && $MasterQty == 0) {
+        } elseif ($product->isInStock() && $MasterQty == 0) {
             $stock = 2;
-        } else if ($product->isInStock()){
+        } elseif ($product->isInStock()) {
             $stock = 1;
         } else {
             $stock = 0;
@@ -275,8 +271,7 @@ class Feed
 
         $brand = null;
 
-        foreach (self::$attr['brand'] as $v)
-        {
+        foreach (self::$attr['brand'] as $v) {
             $brand = $product->getAttributeText($v);
             if (!empty($brand) && $brand != "false") {
                 break;
@@ -308,7 +303,7 @@ class Feed
             'created_at' => self::getHelp()->getFunc->correctDate($product->getCreatedAt()),
         ];
 
-        foreach ($oo as $key =>$val) {
+        foreach ($oo as $key => $val) {
             if ($key == 'variations') {
                 if (empty($val['variation'])) {
                     unset($oo[$key]);

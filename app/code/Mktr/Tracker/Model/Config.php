@@ -144,8 +144,7 @@ importScripts("https://t.themarketer.com/firebase.js");';
     /** TODO: Magento 2 */
     private static function getConfig()
     {
-        if (self::$configData == null)
-        {
+        if (self::$configData == null) {
             self::$configData = \Magento\Framework\App\ObjectManager::getInstance()->get("\Magento\Framework\App\Config\ScopeConfigInterface");
         }
         return self::$configData;
@@ -161,8 +160,7 @@ importScripts("https://t.themarketer.com/firebase.js");';
     /** @noinspection PhpUnused */
     public static function getScopeCode()
     {
-        if (self::$scopeCode == null)
-        {
+        if (self::$scopeCode == null) {
             self::$scopeCode = self::getHelp()->getStore->getStoreId();
         }
         return self::$scopeCode;
@@ -170,8 +168,7 @@ importScripts("https://t.themarketer.com/firebase.js");';
 
     public static function getStoreValue($name, $store)
     {
-        if (isset(self::configNames[$name]))
-        {
+        if (isset(self::configNames[$name])) {
             return self::getConfig()->getValue(self::configNames[$name], self::scopeType, $store);
         } else {
             return self::getConfig()->getValue($name, self::scopeType, $store);
@@ -180,13 +177,10 @@ importScripts("https://t.themarketer.com/firebase.js");';
 
     public static function getValue($name)
     {
-        if (empty(self::$configValues[$name]))
-        {
-            if (isset(self::configNames[$name]))
-            {
+        if (empty(self::$configValues[$name])) {
+            if (isset(self::configNames[$name])) {
                 self::$configValues[$name] = self::getConfig()->getValue(self::configNames[$name], self::scopeType, self::getScopeCode());
-                if (in_array($name, array('color','size','brand')))
-                {
+                if (in_array($name, ['color','size','brand'])) {
                     self::$configValues[$name] = explode("|", self::$configValues[$name]);
                 }
             } else {

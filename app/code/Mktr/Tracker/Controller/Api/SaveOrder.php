@@ -23,7 +23,8 @@ class SaveOrder extends Action
         "Subscriber" => null
     ];
 
-    public function __construct(Context $context, Data $help, \Magento\Newsletter\Model\Subscriber $subscriber) {
+    public function __construct(Context $context, Data $help, \Magento\Newsletter\Model\Subscriber $subscriber)
+    {
         parent::__construct($context);
         self::$ins['Subscriber'] = $subscriber;
         self::$ins['Help'] = $help;
@@ -61,26 +62,23 @@ class SaveOrder extends Action
 
             $nws = self::getSubscriber()->loadByEmail($sOrder["email_address"]);
 
-            if ($nws && $nws->getStatus() == \Magento\Newsletter\Model\Subscriber::STATUS_SUBSCRIBED)
-            {
-                if (!empty($sOrder["email_address"]))
-                {
+            if ($nws && $nws->getStatus() == \Magento\Newsletter\Model\Subscriber::STATUS_SUBSCRIBED) {
+                if (!empty($sOrder["email_address"])) {
                     $fNameS = "set".self::getHelp()->getSessionName.'setEmail';
                     self::getHelp()->getSession->{$fNameS}(
                         self::getHelp()->getManager->schemaValidate(
-                            $sOrder, self::getHelp()->getManager->getEventsSchema('setEmail')
+                            $sOrder,
+                            self::getHelp()->getManager->getEventsSchema('setEmail')
                         )
                     );
                 }
 
-                if (!empty($sOrder["phone"]))
-                {
+                if (!empty($sOrder["phone"])) {
                     $fNameS = "set".self::getHelp()->getSessionName.'setPhone';
                     self::getHelp()->getSession->{$fNameS}([ 'phone' => $sOrder["phone"] ]);
                 }
             }
-            if (self::getHelp()->getApi->getStatus() == 200)
-            {
+            if (self::getHelp()->getApi->getStatus() == 200) {
                 self::getHelp()->getSession->{"uns".$fName}();
             }
 
@@ -93,4 +91,3 @@ class SaveOrder extends Action
         return $result;
     }
 }
-

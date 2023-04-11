@@ -82,28 +82,22 @@ class Data extends AbstractHelper
         return self::$inst;
     }
 
-    public function __get($property) {
+    public function __get($property)
+    {
         if (self::$ins[$property][0] == null) {
-            if (self::$ins[$property][1] == 'get')
-            {
+            if (self::$ins[$property][1] == 'get') {
                 self::$ins[$property][0] = self::init()->get(self::$ins[$property][2]);
-            } else if (self::$ins[$property][1] == 'getWebsite')
-            {
+            } elseif (self::$ins[$property][1] == 'getWebsite') {
                 self::$ins[$property][0] = self::$helper->getStoreManager->getWebsite();
-            } else if (self::$ins[$property][1] == 'getBaseUrl')
-            {
+            } elseif (self::$ins[$property][1] == 'getBaseUrl') {
                 self::$ins[$property][0] = self::$helper->getStoreManager->getStore()->getBaseUrl();
-            } else if (self::$ins[$property][1] == 'getStore')
-            {
+            } elseif (self::$ins[$property][1] == 'getStore') {
                 self::$ins[$property][0] = self::$helper->getStoreManager->getStore();
-            }else if (self::$ins[$property][1] == 'create')
-            {
+            } elseif (self::$ins[$property][1] == 'create') {
                 self::$ins[$property][0] = self::init()->create(self::$ins[$property][2]);
-            } else if (self::$ins[$property][1] == 'create|create')
-            {
+            } elseif (self::$ins[$property][1] == 'create|create') {
                 self::$ins[$property][0] = self::init()->create(self::$ins[$property][2])->create();
-            } else if (self::$ins[$property][1] == 'getVersion')
-            {
+            } elseif (self::$ins[$property][1] == 'getVersion') {
                 self::$ins[$property][0] = self::init()->get(self::$ins[$property][2])->getVersion();
             } else {
                 self::$ins[$property][0] = self::{self::$ins[$property][2]}();
@@ -114,8 +108,7 @@ class Data extends AbstractHelper
 
     public static function getRegistry($registryName)
     {
-        if (self::$ins["getRegistry"][0] === null)
-        {
+        if (self::$ins["getRegistry"][0] === null) {
             self::$ins["getRegistry"][0] = self::init()->get(self::$ins["getRegistry"][2]);
         }
 

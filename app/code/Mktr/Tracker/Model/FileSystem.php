@@ -36,8 +36,7 @@ class FileSystem
 
     private static function getModulePath()
     {
-        if (self::$ins['ModulePath'] === null)
-        {
+        if (self::$ins['ModulePath'] === null) {
             self::$ins['ModulePath'] = dirname(__DIR__). "/";
         }
         return self::$ins['ModulePath'];
@@ -45,8 +44,7 @@ class FileSystem
 
     public static function getFileSystem()
     {
-        if (self::$ins['fileSystem'] === null)
-        {
+        if (self::$ins['fileSystem'] === null) {
             self::$ins['fileSystem'] = \Magento\Framework\App\ObjectManager::getInstance()->create('\Magento\Framework\Filesystem');
         }
         return self::$ins['fileSystem'];
@@ -55,8 +53,7 @@ class FileSystem
     /** @noinspection PhpMissingReturnTypeInspection */
     public static function setWorkDirectory($name = 'base')
     {
-        if ($name == 'base')
-        {
+        if ($name == 'base') {
             self::$path = self::getFileSystem()->getDirectoryWrite(DirectoryList::PUB)->getAbsolutePath();
         } else {
             self::$path = self::getModulePath() . $name . "/";

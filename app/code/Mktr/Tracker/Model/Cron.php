@@ -13,10 +13,10 @@ namespace Mktr\Tracker\Model;
 
 class Cron
 {
-    private static $ins = array(
+    private static $ins = [
         "Help" => null,
         "Config" => null
-    );
+    ];
 
     /** TODO: Magento 2 */
     public static function getHelp()
@@ -42,8 +42,7 @@ class Cron
         $upFeed = self::getHelp()->getData->update_feed;
         $upReview = self::getHelp()->getData->update_review;
 
-        foreach (self::getStores() as $k)
-        {
+        foreach (self::getStores() as $k) {
             if ($k->getId() != 0) {
                 self::getHelp()->getStoreManager->setCurrentStore($k->getId());
                 self::getHelp()->getConfig->setScopeCode($k->getId());
@@ -51,16 +50,14 @@ class Cron
 
                 if (self::getHelp()->getConfig->getStatus() != 0) {
 
-                    if (self::getHelp()->getConfig->getCronFeed() != 0 && $upFeed < time())
-                    {
+                    if (self::getHelp()->getConfig->getCronFeed() != 0 && $upFeed < time()) {
                         self::getHelp()->getFunc->Write(self::getHelp()->getPagesFeed);
 
                         self::getHelp()->getData->update_feed =
                             strtotime("+".self::getHelp()->getConfig->getUpdateFeed()." hour");
                     }
 
-                    if (self::getHelp()->getConfig->getCronReview() != 0 && $upReview < time())
-                    {
+                    if (self::getHelp()->getConfig->getCronReview() != 0 && $upReview < time()) {
                         self::getHelp()->getPagesReviews->execute();
                         self::getHelp()->getData->update_review =
                             strtotime("+".self::getHelp()->getConfig->getUpdateReview()." hour");

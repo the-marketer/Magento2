@@ -64,8 +64,7 @@ class DiscountCode extends \Magento\Framework\DataObject implements Codegenerato
 
     private static function getGenerator()
     {
-        if (self::$generator === null)
-        {
+        if (self::$generator === null) {
             $mktrGenerator = self::init();
             $mktrGenerator->setFormat(Coupon::COUPON_FORMAT_ALPHANUMERIC);
             $mktrGenerator->setLength(10);
@@ -81,21 +80,21 @@ class DiscountCode extends \Magento\Framework\DataObject implements Codegenerato
     {
         self::$ruleType = self::discountRules[$p['type']];
 
-        $name = vsprintf(self::NAME,[
+        $name = vsprintf(self::NAME, [
                 self::$ruleType,
                 $p['value']
             ]).(isset($p['expiration_date']) ? '-' . $p['expiration_date'] : '');
 
         self::$NewCode[$name] = self::getRule()
             ->getCollection()
-            ->addFieldToFilter('name', array('eq' => $name))
+            ->addFieldToFilter('name', ['eq' => $name])
             ->getFirstItem();
 
         if (self::$NewCode[$name] === null || !self::$NewCode[$name]->getRuleId()) {
             self::$NewCode[$name] = self::getRule();
 
             if (self::$sIds === null) {
-                $nIds = array();
+                $nIds = [];
                 foreach (self::getHelp()->getStoreRepo->getList() as $website) {
                     if ($website->getCode() !== 'admin') {
                         $nIds[] = $website->getWebsiteId();
@@ -104,7 +103,7 @@ class DiscountCode extends \Magento\Framework\DataObject implements Codegenerato
                 self::$sIds = $nIds;
             }
             if (self::$cGroups === null) {
-                $nGroups = array();
+                $nGroups = [];
                 foreach (self::getHelp()->getCustomerGroup->getCollection()->toOptionHash() as $groupId => $n) {
                     $nGroups[] = $groupId;
                 }
@@ -118,7 +117,7 @@ class DiscountCode extends \Magento\Framework\DataObject implements Codegenerato
         self::$NewCode[$name]->setName($name)
             ->setDescription(self::DESCRIPTION)
             ->setStopRulesProcessing(0)
-            ->setFromDate(date('Y-m-d',strtotime( date('Y-m-d'). ' -1 day')))
+            ->setFromDate(date('Y-m-d', strtotime(date('Y-m-d'). ' -1 day')))
             ->setIsActive(1)
             ->setUsesPerCoupon(1)
             ->setUsesPerCustomer(1)

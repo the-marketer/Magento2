@@ -22,7 +22,8 @@ class CodeGenerator extends Action
 
     private static $error;
 
-    public function __construct(\Magento\Framework\App\Action\Context $context, Data $help) {
+    public function __construct(\Magento\Framework\App\Action\Context $context, Data $help)
+    {
         parent::__construct($context);
         self::$ins['Help'] = $help;
     }
@@ -58,8 +59,7 @@ class CodeGenerator extends Action
             'type' => "Required|RuleCheck"
         ]);
 
-        if (self::status())
-        {
+        if (self::status()) {
             $gCode = self::getCodeGen()->getNewCode(self::getHelp()->getRequest->getParams());
 
             return self::getHelp()->getFunc->Output([ 'code' => $gCode->getCouponCodeGenerator()->getCode() ]);

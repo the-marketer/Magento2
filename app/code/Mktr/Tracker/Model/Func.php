@@ -61,7 +61,8 @@ class Func
         return preg_replace("/\D/", "", $phone);
     }
 
-    public static function toJson($data = null){
+    public static function toJson($data = null)
+    {
         /** @noinspection PhpComposerExtensionStubsInspection */
         return json_encode(($data === null ? [] : $data), JSON_UNESCAPED_SLASHES);
     }
@@ -83,7 +84,7 @@ class Func
         return self::$getOut;
     }
 
-    public static function justOutput($data, $data1=null, $type = null)
+    public static function justOutput($data, $data1 = null, $type = null)
     {
         return self::Output($data, $data1, $type, false);
     }
@@ -97,7 +98,7 @@ class Func
     {
         try {
             return self::getHelp()->getStoreManager->getWebsite($store)->getDefaultGroup()->getDefaultStoreId();
-        } catch(Exception $e) {
+        } catch (Exception $e) {
             return false;
         }
     }
@@ -110,8 +111,8 @@ class Func
             
             if ($store !== false) {
                 try {
-                   $store = self::getHelp()->getStoreManager->getStore($store)->getId();
-                } catch(Exception $e) {
+                    $store = self::getHelp()->getStoreManager->getStore($store)->getId();
+                } catch (Exception $e) {
                     $store = self::getWebsiteId($store);
                 }
             }
@@ -133,8 +134,7 @@ class Func
 
         $params = self::getHelp()->getRequest->getParams();
 
-        if (isset($params['start_date']))
-        {
+        if (isset($params['start_date'])) {
             $script = base64_encode($params['start_date'].'-'.self::getStoreId());
         } else {
             $script = self::getStoreId();
@@ -161,8 +161,7 @@ class Func
         $module = self::getHelp()->getFileSystem->setWorkDirectory("Storage");
         $params = self::getHelp()->getRequest->getParams();
 
-        if (isset($params['start_date']))
-        {
+        if (isset($params['start_date'])) {
             $script = base64_encode($params['start_date'].'-'.self::getStoreId());
         } else {
             $script = self::getStoreId();
@@ -185,7 +184,7 @@ class Func
         return $result ;
     }
 
-    public static function Output($data, $data1=null, $type = null, $convert = true)
+    public static function Output($data, $data1 = null, $type = null, $convert = true)
     {
 
         $type = $type ?? self::getHelp()->getRequest->getParam('mime-type') ?? "xml";
@@ -194,13 +193,12 @@ class Func
 
         self::$getOut = "";
 
-        if ($type === 'json')
-        {
+        if ($type === 'json') {
             $result->setHeader('Content-type', 'application/json; charset=utf-8;', 1);
 
-            if($convert) {
+            if ($convert) {
                 if ($data1 !== null) {
-                    $data = array($data => $data1);
+                    $data = [$data => $data1];
                 }
 
                 self::$getOut = self::toJson($data);
@@ -208,13 +206,12 @@ class Func
         } else {
             $result->setHeader('Content-type', 'application/xhtml+xml; charset=utf-8;', 1);
 
-            if($convert) {
+            if ($convert) {
                 self::$getOut = self::getHelp()->getArray2XML->cXML($data, $data1)->saveXML();
             }
         }
 
-        if(!$convert)
-        {
+        if (!$convert) {
             self::$getOut = $data;
         }
 
@@ -225,37 +222,29 @@ class Func
     {
         self::$params = self::getHelp()->getRequest->getParams();
 
-        if (self::$params === null)
-        {
+        if (self::$params === null) {
             return "oops";
         }
 
-        if ($checkParam === null)
-        {
+        if ($checkParam === null) {
             return null;
         }
 
         $error = null;
 
-        foreach ($checkParam as $k=>$v)
-        {
-            if ($v !== null)
-            {
+        foreach ($checkParam as $k => $v) {
+            if ($v !== null) {
                 $check = explode("|", $v);
-                foreach ($check as $do)
-                {
+                foreach ($check as $do) {
                     if ($error === null) {
-                        switch ($do)
-                        {
+                        switch ($do) {
                             case "Required":
-                                if (!isset(self::$params[$k]))
-                                {
+                                if (!isset(self::$params[$k])) {
                                     $error = "Missing Parameter ". $k;
                                 }
                                 break;
                             case "DateCheck":
-                                if (isset(self::$params[$k]) && !self::validateDate(self::$params[$k]))
-                                {
+                                if (isset(self::$params[$k]) && !self::validateDate(self::$params[$k])) {
                                     $error = "Incorrect Date ".
                                         $k." - ".
                                         self::$params[$k] . " - ".
@@ -263,8 +252,7 @@ class Func
                                 }
                                 break;
                             case "StartDate":
-                                if (isset(self::$params[$k]) && strtotime(self::$params[$k]) > \time())
-                                {
+                                if (isset(self::$params[$k]) && strtotime(self::$params[$k]) > \time()) {
                                     $error = "Incorrect Start Date ".
                                         $k." - ".
                                         self::$params[$k] . " - Today is ".
@@ -272,20 +260,17 @@ class Func
                                 }
                                 break;
                             case "Key":
-                                if (isset(self::$params[$k]) && self::$params[$k] !== self::getConfig()->getRestKey())
-                                {
+                                if (isset(self::$params[$k]) && self::$params[$k] !== self::getConfig()->getRestKey()) {
                                     $error = "Incorrect REST API Key ". self::$params[$k];
                                 }
                                 break;
                             case "RuleCheck":
-                                if (isset(self::$params[$k]) && !isset(self::getConfig()->getDiscountRules()[self::$params[$k]]))
-                                {
+                                if (isset(self::$params[$k]) && !isset(self::getConfig()->getDiscountRules()[self::$params[$k]])) {
                                     $error = "Incorrect Rule Type ". self::$params[$k];
                                 }
                                 break;
                             case "Int":
-                                if (isset(self::$params[$k]) && !is_numeric(self::$params[$k]))
-                                {
+                                if (isset(self::$params[$k]) && !is_numeric(self::$params[$k])) {
                                     $error = "Incorrect Value ". self::$params[$k];
                                 }
                                 break;

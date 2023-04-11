@@ -25,7 +25,8 @@ class Feed extends Action
     private static $fileName = "products";
     private static $secondName = "product";
 
-    public function __construct(Context $context, Data $help) {
+    public function __construct(Context $context, Data $help)
+    {
         parent::__construct($context);
         self::$ins['Help'] = $help;
     }
@@ -48,12 +49,11 @@ class Feed extends Action
     public function execute()
     {
         /** @noinspection DuplicatedCode */
-        self::$error =  self::getHelp()->getFunc->isParamValid(self::$params,[
+        self::$error =  self::getHelp()->getFunc->isParamValid(self::$params, [
             'key' => 'Required|Key'
         ]);
 
-        if ($this->status())
-        {
+        if ($this->status()) {
             return self::getHelp()->getFunc->readOrWrite(self::$fileName, self::$secondName, $this);
         }
 

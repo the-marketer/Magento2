@@ -28,7 +28,8 @@ class Category extends Action
     private static $data;
     private static $url;
 
-    public function __construct(Context $context, Data $help) {
+    public function __construct(Context $context, Data $help)
+    {
         parent::__construct($context);
         self::$ins['Help'] = $help;
     }
@@ -54,8 +55,7 @@ class Category extends Action
             'key' => 'Required|Key'
         ]);
 
-        if ($this->status())
-        {
+        if ($this->status()) {
             return self::getHelp()->getFunc->readOrWrite(self::$fileName, self::$secondName, $this);
         }
 
@@ -74,18 +74,18 @@ class Category extends Action
         return implode("|", $breadcrumb);
     }
 
-    public static function build($category){
+    public static function build($category)
+    {
 
-        $newList = array(
+        $newList = [
             "name" => $category->getName(),
             "url" => self::$url. $category->getUrlPath().'.html',
             'id'=> $category->getId(),
             "hierarchy" => self::hierarchy($category),
             "image_url" => $category->getImageUrl()
-        );
+        ];
 
-        if (empty($newList["image_url"]))
-        {
+        if (empty($newList["image_url"])) {
             unset($newList["image_url"]);
         }
 
@@ -94,8 +94,8 @@ class Category extends Action
 
     public static function freshData(): array
     {
-        $categories = self::getHelp()->getCategoriesData->getStoreCategories(false,true,true);
-        self::$data = array();
+        $categories = self::getHelp()->getCategoriesData->getStoreCategories(false, true, true);
+        self::$data = [];
         self::$url = self::getHelp()->getBaseUrl;
         foreach ($categories as $category) {
             $cat = self::getHelp()->getCategoryRepo->load($category->getId());

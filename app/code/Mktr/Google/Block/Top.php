@@ -24,7 +24,7 @@ class Top extends Template
 
     protected function _toHtml(): string
     {
-        $objectManager =  \Magento\Framework\App\ObjectManager::getInstance();        
+        $objectManager =  \Magento\Framework\App\ObjectManager::getInstance();
  
         $storeManager = $objectManager->get('\Magento\Store\Model\StoreManagerInterface');
  

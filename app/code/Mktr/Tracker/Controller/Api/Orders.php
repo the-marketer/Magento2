@@ -24,13 +24,14 @@ class Orders extends Action
     private static $error = null;
     private static $params = null;
     private static $brandAttribute = null;
-    private static $data = array();
+    private static $data = [];
     private static $imageLink = null;
 
     private static $fileName = "orders";
     private static $secondName = "order";
 
-    public function __construct(Context $context, Data $help) {
+    public function __construct(Context $context, Data $help)
+    {
         parent::__construct($context);
         self::$ins['Help'] = $help;
     }
@@ -51,8 +52,7 @@ class Orders extends Action
 
     private static function getProductImage($product)
     {
-        if (self::$imageLink === null)
-        {
+        if (self::$imageLink === null) {
             /** TODO: Magento 2 */
             self::$imageLink = self::getHelp()->getStore
                     ->getBaseUrl(\Magento\Framework\UrlInterface::URL_TYPE_MEDIA).'catalog/product';
@@ -82,15 +82,14 @@ class Orders extends Action
             $ct = self::getHelp()->getManager->buildMultiCategory($pro->getCategoryIds());
 
             $brand = '';
-            foreach (self::$brandAttribute as $v)
-            {
+            foreach (self::$brandAttribute as $v) {
                 $brand = $pro->getAttributeText($v);
                 if (!empty($brand)) {
                     break;
                 }
             }
 
-            $products[] = array(
+            $products[] = [
                 'product_id' => $item->getProductId(),
                 'name' => $item->getName(),
                 'url' => $pro->getProductUrl(),
@@ -102,10 +101,10 @@ class Orders extends Action
                 'quantity' => (int) $item->getQtyOrdered(),
                 'variation_id' => $pro->getId(),
                 'variation_sku' => $item->getSku()
-            );
+            ];
         }
 
-        return array(
+        return [
             "order_no" => $saveOrder->getIncrementId(),
             "order_status" => $saveOrder->getState(),
             "refund_value" => self::getHelp()->getFunc->digit2($saveOrder->getTotalRefunded()) ?? 0,
@@ -123,7 +122,7 @@ class Orders extends Action
             "tax" => self::getHelp()->getFunc->digit2($saveOrder->getTaxAmount()),// ->getFullTaxInfo()
             "total_value" => self::getHelp()->getFunc->digit2($saveOrder->getGrandTotal()),
             "products" => $products
-        );
+        ];
     }
 
     /** @noinspection PhpUnused */
@@ -139,8 +138,7 @@ class Orders extends Action
             'customerId' => null
         ]);
 
-        if ($this->status())
-        {
+        if ($this->status()) {
             return self::getHelp()->getFunc->readOrWrite(self::$fileName, self::$secondName, $this);
         }
 
@@ -149,12 +147,11 @@ class Orders extends Action
 
     public static function freshData(): array
     {
-        $or = array();
+        $or = [];
         $stop = false;
         self::$params = self::getHelp()->getRequest->getParams();
 
-        if (isset(self::$params['page']))
-        {
+        if (isset(self::$params['page'])) {
             $stop = true;
         }
 
@@ -173,10 +170,10 @@ class Orders extends Action
         );
 
         self::$data['Orders'] = self::getHelp()->getOrderRepo->getCollection()
-            ->addFieldToFilter('store_id',array('in', self::getHelp()->getFunc->getStoreId()))
-            ->addAttributeToFilter('created_at', array('from' => self::$data['startDate'], 'to' => self::$data['endDate']))
+            ->addFieldToFilter('store_id', ['in', self::getHelp()->getFunc->getStoreId()])
+            ->addAttributeToFilter('created_at', ['from' => self::$data['startDate'], 'to' => self::$data['endDate']])
             ->setPageSize(self::$params['limit'])
-            ->setOrder('created_at','ASC');
+            ->setOrder('created_at', 'ASC');
         //->addStoreFilter(self::getHelp()->getFunc->getStoreId());
 
         if ($stop) {

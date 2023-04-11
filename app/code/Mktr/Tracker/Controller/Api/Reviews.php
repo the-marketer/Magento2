@@ -42,10 +42,10 @@ class Reviews extends Action
 
     public function execute()
     {
-        self::$error = self::getHelp()->getFunc->isParamValid(array(
+        self::$error = self::getHelp()->getFunc->isParamValid([
             'key' => 'Required|Key',
             'start_date' => 'Required|DateCheck|StartDate'
-        ));
+        ]);
         if (self::status()) {
             return self::getHelp()->getFunc->Output('reviews', json_decode(json_encode(self::getHelp()->getPagesReviews->execute()), true));
         }

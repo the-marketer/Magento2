@@ -25,8 +25,7 @@ class Newsletter extends \Magento\Newsletter\Model\Subscriber
 
     public function sendConfirmationSuccessEmail()
     {
-        if (self::getHelp()->getOptIn() == 0)
-        {
+        if (self::getHelp()->getOptIn() == 0) {
             return parent::sendConfirmationSuccessEmail();
         }
         return $this;
@@ -34,8 +33,7 @@ class Newsletter extends \Magento\Newsletter\Model\Subscriber
 
     public function sendUnsubscriptionEmail()
     {
-        if (self::getHelp()->getOptIn() == 0)
-        {
+        if (self::getHelp()->getOptIn() == 0) {
             return parent::sendUnsubscriptionEmail();
         }
         return $this;

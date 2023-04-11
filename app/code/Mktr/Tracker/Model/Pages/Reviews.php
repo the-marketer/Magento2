@@ -28,16 +28,14 @@ class Reviews
 
     public function rev()
     {
-        if (self::$rev == null)
-        {
+        if (self::$rev == null) {
             self::$rev = \Magento\Framework\App\ObjectManager::getInstance()->get("\Magento\Review\Model\Review");
         }
         return self::$rev;
     }
     public function rating()
     {
-        if (self::$rating == null)
-        {
+        if (self::$rating == null) {
             self::$rating = \Magento\Framework\App\ObjectManager::getInstance()->get("Magento\Review\Model\Rating");
         }
         return self::$rating;
@@ -61,8 +59,7 @@ class Reviews
                          ->get('\Magento\Store\Api\StoreRepositoryInterface')
                          ->getList() as $k) {
                 if (self::getHelp()->getConfig->getStoreValue("status", $k->getId()) &&
-                    self::getHelp()->getConfig->getStoreValue("rest_key", $k->getId()) === self::getHelp()->getConfig->getRestKey())
-                {
+                    self::getHelp()->getConfig->getStoreValue("rest_key", $k->getId()) === self::getHelp()->getConfig->getRestKey()) {
                     self::$ins["Config"][] = $k->getId();
                 }
             }
@@ -76,16 +73,16 @@ class Reviews
         $o = self::getHelp()->getApi->send("product_reviews", ['t' => strtotime($t)], false);
 
         $xml = simplexml_load_string($o->getContent(), 'SimpleXMLElement', LIBXML_NOCDATA);
-        $rating = array(
+        $rating = [
             /*
             1 => array(1 => 1,  2 => 2,  3 => 3,  4 => 4,  5 => 5), //quality
             2 => array(1 => 6,  2 => 7,  3 => 8,  4 => 9,  5 => 10),//value
             3 => array(1 => 11, 2 => 12, 3 => 13, 4 => 14, 5 => 15),//price
             */
-            4 => array(1 => 16, 2 => 17, 3 => 18, 4 => 19, 5 => 20) //rating
-        );
+            4 => [1 => 16, 2 => 17, 3 => 18, 4 => 19, 5 => 20] //rating
+        ];
 
-        $added = array();
+        $added = [];
         $revStore = self::getHelp()->getData->{"reviewStore".self::getHelp()->getConfig->getRestKey()};
 
         foreach ($xml->review as $value) {

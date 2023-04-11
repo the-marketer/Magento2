@@ -21,7 +21,7 @@ class Events implements ObserverInterface
     private static $eventAction = null;
     private static $eventData = [];
 
-    const observerEvents = array(
+    const observerEvents = [
         "checkout_cart_product_add_after" => "addToCart",
         "sales_quote_remove_item" => "removeFromCart",
         "wishlist_add_product" => "addToWishlist",
@@ -34,12 +34,12 @@ class Events implements ObserverInterface
         /* "review_controller_product_init_after" => "Review", */
         "admin_system_config_changed_section_mktr_tracker" => "SaveButton",
         "sales_order_save_after" => "UpdateOrder"
-    );
+    ];
 
-    private static $ins = array(
+    private static $ins = [
         "Help" => null,
         "Config" => null
-    );
+    ];
 
     /** TODO: Magento 2 */
     public static function getHelp()
@@ -71,8 +71,7 @@ class Events implements ObserverInterface
 
     public static function getObserverEvents($name = null)
     {
-        if ($name == null)
-        {
+        if ($name == null) {
             return self::observerEvents;
         }
         if (isset(self::observerEvents[$name])) {
@@ -86,19 +85,18 @@ class Events implements ObserverInterface
     {
         $variant = self::$observer->getEvent()->getQuoteItem()->getOptionByCode('simple_product');
 
-        if ($variant == null)
-        {
+        if ($variant == null) {
             $variant = self::$observer->getQuoteItem();
         }
 
-        self::$eventData = array(
+        self::$eventData = [
             'product_id' => self::$observer->getEvent()->getProduct()->getId(),
             'quantity'=> (int) self::$observer->getQuoteItem()->getQty(),
-            'variation' => array(
+            'variation' => [
                 'id' => $variant->getProduct()->getId(),
                 'sku' => $variant->getProduct()->getSku()
-            )
-        );
+            ]
+        ];
 
         self::MktrSessionSet();
     }
@@ -113,19 +111,18 @@ class Events implements ObserverInterface
             ->getQuoteItem()
             ->getOptionByCode('simple_product');
 
-        if ($variant == null)
-        {
+        if ($variant == null) {
             $variant = self::$observer->getQuoteItem();
         }
 
-        self::$eventData = array(
+        self::$eventData = [
             'product_id' => $product->getProductId(),
             'quantity'=> (int) self::$observer->getQuoteItem()->getQty(),
-            'variation' => array(
+            'variation' => [
                 'id' => $variant->getProduct()->getId(),
                 'sku' => $variant->getProduct()->getSku()
-            )
-        );
+            ]
+        ];
 
         self::MktrSessionSet();
     }
@@ -143,14 +140,14 @@ class Events implements ObserverInterface
             $valueID = $product->getValue();
         }
 
-        self::$eventData = array(
+        self::$eventData = [
             'product_id' => $ID,
-            'variation' => array(
+            'variation' => [
                 'id' => $valueID,
                 /** TODO: Magento 1 = load($valueID)->getSku() | Magento 2 = getById($valueID)->getSku() */
                 'sku' => self::getHelp()->getProductRepo->load($valueID)->getSku()
-            )
-        );
+            ]
+        ];
 
         self::MktrSessionSet();
     }
@@ -169,14 +166,14 @@ class Events implements ObserverInterface
             $valueID = $product->getProductId();
         }
 
-        self::$eventData = array(
+        self::$eventData = [
             'product_id' => $ID,
-            'variation' => array(
+            'variation' => [
                 'id' => $valueID,
                 /** TODO: Magento 1 = load($valueID)->getSku() | Magento 2 = getById($valueID)->getSku() */
                 'sku' => self::getHelp()->getProductRepo->load($valueID)->getSku()
-            )
-        );
+            ]
+        ];
 
         self::MktrSessionSet();
     }
@@ -186,8 +183,7 @@ class Events implements ObserverInterface
     {
         $saveOrder = self::$observer->getOrder();
 
-        if (self::getHelp()->getMageVersion > "1.4.2.0")
-        {
+        if (self::getHelp()->getMageVersion > "1.4.2.0") {
             $billingAddress = $saveOrder->getbillingAddress();
         } else {
             $billingAddress = $saveOrder->getBillingAddress();
@@ -196,21 +192,20 @@ class Events implements ObserverInterface
         $products = [];
 
         foreach ($saveOrder->getAllVisibleItems() as $item) {
-            $products[] = array(
+            $products[] = [
                 'product_id' => $item->getProductId(),
-                'price' => self::getHelp()->getFunc->digit2( self::getHelp()->getTax->getTaxPrice($item, $item->getPrice(), true) ),
+                'price' => self::getHelp()->getFunc->digit2(self::getHelp()->getTax->getTaxPrice($item, $item->getPrice(), true)),
                 'quantity' => (int) $item->getQtyOrdered(),
                 'variation_sku' => $item->getSku()
-            );
+            ];
         }
         $couponCode = $saveOrder->getCouponCode();
 
-        if ($couponCode == null)
-        {
+        if ($couponCode == null) {
             $couponCode = '';
         }
 
-        self::$eventData = array(
+        self::$eventData = [
             "number" => $saveOrder->getIncrementId(),
             "email_address" => $billingAddress->getEmail(),
             "phone" => self::getHelp()->getFunc->validateTelephone($billingAddress->getTelephone()),
@@ -225,7 +220,7 @@ class Events implements ObserverInterface
             "tax" => self::getHelp()->getFunc->digit2($saveOrder->getTaxAmount()),// ->getFullTaxInfo()
             "total_value" => self::getHelp()->getFunc->digit2($saveOrder->getGrandTotal()),
             "products" => $products
-        );
+        ];
         self::MktrSessionSet();
     }
 
@@ -270,7 +265,7 @@ class Events implements ObserverInterface
     }
     /** @noinspection PhpUnused */
     public function Register()
-    {        
+    {
         $fName = self::getHelp()->getSessionName."Api";
         self::getHelp()->getSession->{"set".$fName}([ 'Sub' => self::getHelp()->getRequest->getParam('is_subscribed') ]);
         
@@ -281,9 +276,9 @@ class Events implements ObserverInterface
             self::$eventName = "setPhone";
             $address = self::getHelp()->getCustomerAddress->load($customer->getDefaultShipping());
 
-            self::$eventData = array(
+            self::$eventData = [
                 'phone' => self::getHelp()->getFunc->validateTelephone($address->getTelephone())
-            );
+            ];
 
             self::MktrSessionSet();
         }
@@ -299,9 +294,9 @@ class Events implements ObserverInterface
             self::$eventName = "setPhone";
             $address = self::getHelp()->getCustomerAddress->load($customer->getDefaultShipping());
 
-            self::$eventData = array(
+            self::$eventData = [
                 'phone' => self::getHelp()->getFunc->validateTelephone($address->getTelephone())
-            );
+            ];
 
             self::MktrSessionSet();
         }
@@ -349,10 +344,10 @@ class Events implements ObserverInterface
         $o = self::$observer->getEvent()->getOrder();
         $status = $o->getState();
 
-        $send = array(
+        $send = [
             'order_number' => $o->getIncrementId(),
             'order_status' => $status
-        );
+        ];
 
         self::getHelp()->getApi->send("update_order_status", $send, false);
     }

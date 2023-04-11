@@ -23,7 +23,8 @@ class setEmail extends Action
         "Subscriber" => null
     ];
 
-    public function __construct(Context $context, Data $help, \Magento\Newsletter\Model\Subscriber $subscriber) {
+    public function __construct(Context $context, Data $help, \Magento\Newsletter\Model\Subscriber $subscriber)
+    {
         parent::__construct($context);
         self::$ins['Subscriber'] = $subscriber;
         self::$ins['Help'] = $help;
@@ -65,12 +66,11 @@ class setEmail extends Action
                 /** @noinspection DuplicatedCode */
                 $nws = self::getSubscriber()->loadByEmail($sEmail["email_address"]);
 
-                $info = array(
+                $info = [
                     "email" => $sEmail['email_address']
-                );
+                ];
 
-                if ($nws && $nws->getStatus() == \Magento\Newsletter\Model\Subscriber::STATUS_SUBSCRIBED)
-                {
+                if ($nws && $nws->getStatus() == \Magento\Newsletter\Model\Subscriber::STATUS_SUBSCRIBED) {
                     $customer = self::getHelp()->getCustomerData
                         ->setWebsiteId(self::getHelp()->getWebsite->getId())
                         ->loadByEmail($sEmail['email_address']);
@@ -84,16 +84,16 @@ class setEmail extends Action
                     }
                     if ($customer->getName() !== null && $customer->getName() !== ' ') {
                         $info["name"] = $customer->getName();
-                    } else if ($customer->getFirstname() === null && $customer->getLastname() === null) {
-                        $info["name"] = explode("@",$customer->getEmail())[0];
-                    } else if ($customer->getFirstname() !== null && $customer->getLastname() !== null) {
+                    } elseif ($customer->getFirstname() === null && $customer->getLastname() === null) {
+                        $info["name"] = explode("@", $customer->getEmail())[0];
+                    } elseif ($customer->getFirstname() !== null && $customer->getLastname() !== null) {
                         $info["name"] = $customer->getFirstname().' '.$customer->getLastname();
-                    } else if ($customer->getFirstname() !== null) {
+                    } elseif ($customer->getFirstname() !== null) {
                         $info["name"] = $customer->getFirstname();
-                    } else  if ($customer->getLastname() !== null) {
+                    } elseif ($customer->getLastname() !== null) {
                         $info["name"] = $customer->getLastname();
                     } else {
-                        $info["name"] = explode("@",$sEmail['email'])[0];
+                        $info["name"] = explode("@", $sEmail['email'])[0];
                     }
 
                     self::getHelp()->getApi->send("add_subscriber", $info);
@@ -103,8 +103,7 @@ class setEmail extends Action
                     $lines = "setEmailRemove";
                 }
 
-                if (self::getHelp()->getApi->getStatus() == 200)
-                {
+                if (self::getHelp()->getApi->getStatus() == 200) {
                     $fNameP = self::getHelp()->getSessionName . 'setPhone';
                     if (self::getHelp()->getSession->{"get".$fNameP}()) {
                         self::getHelp()->getSession->{"uns".$fNameP}();

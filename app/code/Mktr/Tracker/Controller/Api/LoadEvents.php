@@ -23,7 +23,8 @@ class LoadEvents extends Action
         "Config" => null
     ];
 
-    public function __construct(Context $context, Data $help) {
+    public function __construct(Context $context, Data $help)
+    {
         parent::__construct($context);
         self::$ins['Help'] = $help;
         // self::$cons = $this;
@@ -41,8 +42,7 @@ class LoadEvents extends Action
     public function execute()
     {
         $lines = [];
-        foreach (self::getHelp()->getConfig->getEventsObs() as $event=>$Name)
-        {
+        foreach (self::getHelp()->getConfig->getEventsObs() as $event => $Name) {
             if (!$Name[0]) {
                 $fName = "get".self::getHelp()->getSessionName.$event;
 
@@ -64,4 +64,3 @@ class LoadEvents extends Action
         return $result;
     }
 }
-
