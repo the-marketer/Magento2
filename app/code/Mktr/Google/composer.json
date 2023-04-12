@@ -1,12 +1,12 @@
 {
-  "name": "mktr/google",
+  "name": "themarketer/google",
   "description": "TheMarketer Google Tag Magento 2",
   "type": "magento2-module",
   "require": {
     "php": ">=7.1.0"
   },
   "license": "OSL-3.0",
-  "version": "1",
+  "version": "1.0.0",
   "autoload": {
     "files": [
       "registration.php"
