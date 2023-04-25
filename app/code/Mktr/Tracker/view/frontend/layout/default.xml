@@ -16,7 +16,6 @@
             <block class="Mktr\Tracker\Block\Loader"
                    name="mktr_tracker_loader"
                    as="mktr_tracker_loader"
-                   cacheable="false"
             />
         </referenceBlock>
     </body>
