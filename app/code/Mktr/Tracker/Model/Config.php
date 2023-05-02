@@ -181,7 +181,7 @@ importScripts("https://t.themarketer.com/firebase.js");';
             if (isset(self::configNames[$name])) {
                 self::$configValues[$name] = self::getConfig()->getValue(self::configNames[$name], self::scopeType, self::getScopeCode());
                 if (in_array($name, ['color','size','brand'])) {
-                    self::$configValues[$name] = explode("|", self::$configValues[$name]);
+                    self::$configValues[$name] = !empty(self::$configValues[$name]) ? explode("|", self::$configValues[$name]) : [];
                 }
             } else {
                 self::$configValues[$name] = self::getConfig()->getValue($name, self::scopeType, self::getScopeCode());

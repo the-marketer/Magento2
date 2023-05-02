@@ -1,3 +1,4 @@
 .DS_Store
 app/code/Mktr/Google/Google.zip
 app/code/Mktr/Tracker/Tracker.zip
+app/code/Mktr/Tracker/Storage/*

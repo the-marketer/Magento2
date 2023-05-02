@@ -13,6 +13,8 @@ namespace Mktr\Tracker\Controller\Api;
 use Magento\Framework\App\Action\Action;
 use Magento\Framework\App\Action\Context;
 use Mktr\Tracker\Helper\Data;
+// use Psr\Log\LoggerInterface;
+// use Magento\Framework\App\ObjectManager;
 
 class Orders extends Action
 {
@@ -68,43 +70,48 @@ class Orders extends Action
 
         foreach ($saveOrder->getAllVisibleItems() as $item) {
             $pro = self::getHelp()->getProductRepo->load($item->getProductId());
+            if ($pro->getId()) {
+                $pro->setStoreId(self::getHelp()->getFunc->getStoreId());
 
-            $pro->setStoreId(self::getHelp()->getFunc->getStoreId());
+                $price = self::getHelp()->getFunc->digit2(
+                    self::getHelp()->getTax->getTaxPrice($item, $item->getPrice(), true)
+                );
 
-            $price = self::getHelp()->getFunc->digit2(
-                self::getHelp()->getTax->getTaxPrice($item, $item->getPrice(), true)
-            );
+                $sale_price = $item->getFinalPrice() > 0 ? self::getHelp()->getFunc->digit2(
+                    self::getHelp()->getTax->getTaxPrice($item, $item->getFinalPrice(), true)
+                ) : $price;
 
-            $sale_price = $item->getFinalPrice() > 0 ? self::getHelp()->getFunc->digit2(
-                self::getHelp()->getTax->getTaxPrice($item, $item->getFinalPrice(), true)
-            ) : $price;
+                $ct = self::getHelp()->getManager->buildMultiCategory($pro->getCategoryIds());
 
-            $ct = self::getHelp()->getManager->buildMultiCategory($pro->getCategoryIds());
-
-            $brand = '';
-            foreach (self::$brandAttribute as $v) {
-                $brand = $pro->getAttributeText($v);
-                if (!empty($brand)) {
-                    break;
+                $brand = '';
+                foreach (self::$brandAttribute as $v) {
+                    $brand = $pro->getAttributeText($v);
+                    if (!empty($brand)) {
+                        break;
+                    }
                 }
-            }
 
-            $products[] = [
-                'product_id' => $item->getProductId(),
-                'name' => $item->getName(),
-                'url' => $pro->getProductUrl(),
-                'main_image' => self::getProductImage($pro),
-                'category' => $ct,
-                'brand' => $brand,
-                'price' => $price,
-                'sale_price' => $sale_price,
-                'quantity' => (int) $item->getQtyOrdered(),
-                'variation_id' => $pro->getId(),
-                'variation_sku' => $item->getSku()
-            ];
+                if (empty($brand)) {
+                    $brand = "N/A";
+                }
+
+                $products[] = [
+                    'product_id' => $item->getProductId(),
+                    'name' => $item->getName(),
+                    'url' => $pro->getProductUrl(),
+                    'main_image' => self::getProductImage($pro),
+                    'category' => $ct,
+                    'brand' => $brand,
+                    'price' => $price,
+                    'sale_price' => $sale_price,
+                    'quantity' => (int) $item->getQtyOrdered(),
+                    'variation_id' => $pro->getId(),
+                    'variation_sku' => $item->getSku()
+                ];
+            }
         }
 
-        return [
+        return empty($products) ? null : [
             "order_no" => $saveOrder->getIncrementId(),
             "order_status" => $saveOrder->getState(),
             "refund_value" => self::getHelp()->getFunc->digit2($saveOrder->getTotalRefunded()) ?? 0,
@@ -187,7 +194,15 @@ class Orders extends Action
 
             if (self::$params['page'] == self::$data['Orders']->getCurPage()) {
                 foreach (self::$data['Orders'] as $orders) {
-                    $or[] = self::getOrderInfo($orders);
+                    try {
+                        $o = self::getOrderInfo($orders);
+                        if ($o !== null) {
+                            $or[] = $o;
+                        }
+                    } catch (\Exception $e) {
+                        // $logger = ObjectManager::getInstance()->get(LoggerInterface::class);
+                        // $logger->debug("Mktr -> " . $e->getMessage());
+                    }
                 }
             }
 
