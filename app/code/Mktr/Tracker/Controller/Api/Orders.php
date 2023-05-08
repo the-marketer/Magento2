@@ -69,46 +69,51 @@ class Orders extends Action
         $products = [];
 
         foreach ($saveOrder->getAllVisibleItems() as $item) {
-            $pro = self::getHelp()->getProductRepo->load($item->getProductId());
-            if ($pro->getId()) {
-                $pro->setStoreId(self::getHelp()->getFunc->getStoreId());
-
-                $price = self::getHelp()->getFunc->digit2(
-                    self::getHelp()->getTax->getTaxPrice($item, $item->getPrice(), true)
-                );
-
-                $sale_price = $item->getFinalPrice() > 0 ? self::getHelp()->getFunc->digit2(
-                    self::getHelp()->getTax->getTaxPrice($item, $item->getFinalPrice(), true)
-                ) : $price;
-
-                $ct = self::getHelp()->getManager->buildMultiCategory($pro->getCategoryIds());
-
-                $brand = '';
-                foreach (self::$brandAttribute as $v) {
-                    $brand = $pro->getAttributeText($v);
-                    if (!empty($brand)) {
-                        break;
-                    }
-                }
-
-                if (empty($brand)) {
-                    $brand = "N/A";
-                }
-
-                $products[] = [
-                    'product_id' => $item->getProductId(),
-                    'name' => $item->getName(),
-                    'url' => $pro->getProductUrl(),
-                    'main_image' => self::getProductImage($pro),
-                    'category' => $ct,
-                    'brand' => $brand,
-                    'price' => $price,
-                    'sale_price' => $sale_price,
-                    'quantity' => (int) $item->getQtyOrdered(),
-                    'variation_id' => $pro->getId(),
-                    'variation_sku' => $item->getSku()
-                ];
+            // getProductById();
+            // $pro = self::getHelp()->getProductRepo->load($item->getProductId());
+            try{
+                $pro = self::getHelp()->getProduct->getById($item->getProductId(), false, self::getHelp()->getFunc->getStoreId(), true);
+            } catch (\Exception $e){
+                continue;
             }
+
+            $pro->setStoreId(self::getHelp()->getFunc->getStoreId());
+
+            $price = self::getHelp()->getFunc->digit2(
+                self::getHelp()->getTax->getTaxPrice($item, $item->getPrice(), true)
+            );
+
+            $sale_price = $item->getFinalPrice() > 0 ? self::getHelp()->getFunc->digit2(
+                self::getHelp()->getTax->getTaxPrice($item, $item->getFinalPrice(), true)
+            ) : $price;
+
+            $ct = self::getHelp()->getManager->buildMultiCategory($pro->getCategoryIds());
+
+            $brand = '';
+            foreach (self::$brandAttribute as $v) {
+                $brand = $pro->getAttributeText($v);
+                if (!empty($brand)) {
+                    break;
+                }
+            }
+
+            if (empty($brand)) {
+                $brand = "N/A";
+            }
+
+            $products[] = [
+                'product_id' => $item->getProductId(),
+                'name' => $item->getName(),
+                'url' => $pro->getProductUrl(),
+                'main_image' => self::getProductImage($pro),
+                'category' => $ct,
+                'brand' => $brand,
+                'price' => $price,
+                'sale_price' => $sale_price,
+                'quantity' => (int) $item->getQtyOrdered(),
+                'variation_id' => $pro->getId(),
+                'variation_sku' => $item->getSku()
+            ];
         }
 
         return empty($products) ? null : [
@@ -194,14 +199,9 @@ class Orders extends Action
 
             if (self::$params['page'] == self::$data['Orders']->getCurPage()) {
                 foreach (self::$data['Orders'] as $orders) {
-                    try {
-                        $o = self::getOrderInfo($orders);
-                        if ($o !== null) {
-                            $or[] = $o;
-                        }
-                    } catch (\Exception $e) {
-                        // $logger = ObjectManager::getInstance()->get(LoggerInterface::class);
-                        // $logger->debug("Mktr -> " . $e->getMessage());
+                    $o = self::getOrderInfo($orders);
+                    if ($o !== null) {
+                        $or[] = $o;
                     }
                 }
             }
