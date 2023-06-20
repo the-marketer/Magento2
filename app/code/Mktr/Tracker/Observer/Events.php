@@ -182,46 +182,47 @@ class Events implements ObserverInterface
     public function saveOrder()
     {
         $saveOrder = self::$observer->getOrder();
-
-        if (self::getHelp()->getMageVersion > "1.4.2.0") {
-            $billingAddress = $saveOrder->getbillingAddress();
-        } else {
-            $billingAddress = $saveOrder->getBillingAddress();
-        }
-
-        $products = [];
-
-        foreach ($saveOrder->getAllVisibleItems() as $item) {
-            $products[] = [
-                'product_id' => $item->getProductId(),
-                'price' => self::getHelp()->getFunc->digit2(self::getHelp()->getTax->getTaxPrice($item, $item->getPrice(), true)),
-                'quantity' => (int) $item->getQtyOrdered(),
-                'variation_sku' => $item->getSku()
+        if ($saveOrder !== null) {
+            if (self::getHelp()->getMageVersion > "1.4.2.0") {
+                $billingAddress = $saveOrder->getbillingAddress();
+            } else {
+                $billingAddress = $saveOrder->getBillingAddress();
+            }
+    
+            $products = [];
+    
+            foreach ($saveOrder->getAllVisibleItems() as $item) {
+                $products[] = [
+                    'product_id' => $item->getProductId(),
+                    'price' => self::getHelp()->getFunc->digit2(self::getHelp()->getTax->getTaxPrice($item, $item->getPrice(), true)),
+                    'quantity' => (int) $item->getQtyOrdered(),
+                    'variation_sku' => $item->getSku()
+                ];
+            }
+            $couponCode = $saveOrder->getCouponCode();
+    
+            if ($couponCode == null) {
+                $couponCode = '';
+            }
+    
+            self::$eventData = [
+                "number" => $saveOrder->getIncrementId(),
+                "email_address" => $billingAddress->getEmail(),
+                "phone" => self::getHelp()->getFunc->validateTelephone($billingAddress->getTelephone()),
+                "firstname" => $billingAddress->getFirstname(),
+                "lastname" => $billingAddress->getLastname(),
+                "city" => $billingAddress->getCity(),
+                "county" => $billingAddress->getRegion(),
+                "address" => implode(" ", $billingAddress->getStreet()),
+                "discount_value" => self::getHelp()->getFunc->digit2($saveOrder->getDiscountAmount()),
+                "discount_code" => $couponCode,
+                "shipping" => self::getHelp()->getFunc->digit2($saveOrder->getShippingInclTax()),
+                "tax" => self::getHelp()->getFunc->digit2($saveOrder->getTaxAmount()),// ->getFullTaxInfo()
+                "total_value" => self::getHelp()->getFunc->digit2($saveOrder->getGrandTotal()),
+                "products" => $products
             ];
+            self::MktrSessionSet();
         }
-        $couponCode = $saveOrder->getCouponCode();
-
-        if ($couponCode == null) {
-            $couponCode = '';
-        }
-
-        self::$eventData = [
-            "number" => $saveOrder->getIncrementId(),
-            "email_address" => $billingAddress->getEmail(),
-            "phone" => self::getHelp()->getFunc->validateTelephone($billingAddress->getTelephone()),
-            "firstname" => $billingAddress->getFirstname(),
-            "lastname" => $billingAddress->getLastname(),
-            "city" => $billingAddress->getCity(),
-            "county" => $billingAddress->getRegion(),
-            "address" => implode(" ", $billingAddress->getStreet()),
-            "discount_value" => self::getHelp()->getFunc->digit2($saveOrder->getDiscountAmount()),
-            "discount_code" => $couponCode,
-            "shipping" => self::getHelp()->getFunc->digit2($saveOrder->getShippingInclTax()),
-            "tax" => self::getHelp()->getFunc->digit2($saveOrder->getTaxAmount()),// ->getFullTaxInfo()
-            "total_value" => self::getHelp()->getFunc->digit2($saveOrder->getGrandTotal()),
-            "products" => $products
-        ];
-        self::MktrSessionSet();
     }
 
     /** @noinspection PhpUnused */
