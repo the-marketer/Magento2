@@ -146,6 +146,7 @@ class Feed
 
     public static function buildProduct($product)
     {
+        // if($product->getId()!=84) { return false; }
         // $product->setStoreId(self::getHelp()->getFunc->getStoreId());
         $listCategory = self::getHelp()->getManager->buildMultiCategory($product->getCategoryIds());
 
@@ -201,33 +202,53 @@ class Feed
                     ];
 
                     foreach (self::$attr['color'] as $v) {
-                        $attribute['color'] = $p->getAttributeText($v);
-                        if (!empty($attribute['color'])) {
-                            break;
+                        if ($p->getData($v) !== null) {
+                            $attribute['color'] = $p->getAttributeText($v);
+                            if (!empty($attribute['color'])) {
+                                break;
+                            }
                         }
                     }
 
                     foreach (self::$attr['size'] as $v) {
-                        $attribute['size'] = $p->getAttributeText($v);
-                        if (!empty($attribute['size'])) {
+                        if ($p->getData($v) !== null) {
+                            $attribute['size'] = $p->getAttributeText($v);
+                            if (!empty($attribute['size'])) {
+                                break;
+                            }
+                        }
+                    }
+                    /*
+                    $ls = [];
+
+                    foreach ($p->getAttributes() as $vv) {
+                        $code = $vv->getAttributeCode();
+                        $lable = $vv->getFrontendLabel();
+                        $ls[] = [$code, $lable];
+                        if (empty($attribute['size']) && (in_array($code , self::$attr['color']) || in_array($lable , self::$attr['color']))) {
+                            $attribute['color'] = $p->getAttributeText($code);
+                            if (!empty($attribute['color'])) { break; }
+                        }
+                        if (empty($attribute['size']) && (in_array($code , self::$attr['size']) || in_array($lable , self::$attr['size']))) {
+                            $attribute['size'] = $p->getAttributeText($code);
+                            if (!empty($attribute['size'])) { break; }
+                        }
+                        if (!empty($attribute['size']) && !empty($attribute['color'])) {
                             break;
                         }
                     }
-
+                    var_dump($p->getData('colordd'), $p->getAttributeText('color'), self::$attr['color'], self::$attr['size'], $attribute, $ls);die();
+                    */
                     /** TODO: Magento 2 */
                     $qty = self::getHelp()->getStockRepo->getStockItem($p->getId())->getQty();
 
                     $MasterQty += (int) $qty;
                     /** @noinspection DuplicatedCode */
-                    if ($qty < 0) {
-                        $stock = self::getHelp()->getConfig->getDefaultStock();
-                    } elseif ($p->isInStock() && $qty == 0) {
-                        $stock = 2;
-                    } elseif ($p->isInStock()) {
-                        $stock = 1;
-                    } else {
-                        $stock = 0;
-                    }
+                    if ($qty < 0) { $stock = self::getHelp()->getConfig->getDefaultStock();
+                    } elseif ($p->isInStock() && $qty == 0) { $stock = 2;
+                    } elseif ($p->isInStock()) { $stock = 1;
+                    } else { $stock = 0; }
+
                     $v = [
                         'id' => $p->getId(),
                         'sku' => $p->getSku(),
