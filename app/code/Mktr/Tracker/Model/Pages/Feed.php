@@ -331,7 +331,7 @@ class Feed
                 }
             } elseif ($key == 'media_gallery') {
                 if (empty($val['image'])) {
-                    unset($oo[$key]);
+                    $oo[$key]['image'] = $oo['main_image'];
                 }
             } else {
                 if (empty($val) && $val != 0 || $val === null) {
