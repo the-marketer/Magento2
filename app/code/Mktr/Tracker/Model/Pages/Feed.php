@@ -58,18 +58,19 @@ class Feed
     {
         if (self::$imageLink === null) {
             /** TODO: Magento 2 */
-            self::$imageLink = self::getHelp()->getStore->getBaseUrl(\Magento\Framework\UrlInterface::URL_TYPE_MEDIA).'catalog/product';
+            self::$imageLink = self::getHelp()->getStore->getBaseUrl(\Magento\Framework\UrlInterface::URL_TYPE_MEDIA).'catalog/product' ;
         }
-        return self::$imageLink . $img;
+        return self::$imageLink . (substr($img, 0, 1) === '/' ? '' : '/') . $img;
     }
 
     private static function getProductImage($product): string
     {
+        $img = $product->getImage();
         if (self::$imageLink === null) {
             /** TODO: Magento 2 */
             self::$imageLink = self::getHelp()->getStore->getBaseUrl(\Magento\Framework\UrlInterface::URL_TYPE_MEDIA).'catalog/product';
         }
-        return self::$imageLink . $product->getImage();
+        return self::$imageLink . (substr($img, 0, 1) === '/' ? '' : '/') . $img;
     }
 
     public static function getProductById($id)
