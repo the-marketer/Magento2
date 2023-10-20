@@ -52,7 +52,7 @@ class Func
     public static function digit2($num): string
     {
         // return sprintf('%.2f', (float) $num);
-        return number_format((float) $num, 2, '.', ',');
+        return str_replace(',', '', number_format((float) $num, 2, '.', ','));
     }
 
     /** @noinspection PhpUnused */

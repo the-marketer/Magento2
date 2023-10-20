@@ -17,17 +17,15 @@ use Mktr\Tracker\Helper\Data;
 class Loader extends Template
 {
     const actions = [
-        /* "checkout_cart_index" => "Cart", */
         "cms_index_index" => "__sm__view_homepage",
         "catalog_category_view" => "__sm__view_category",
         "catalog_product_view" => "__sm__view_product",
-        "onepagecheckout_index_index" => "__sm__initiate_checkout",
-        "checkout_onepage_index" => "__sm__initiate_checkout",
+        /* "checkout_cart_index" => "Cart", */
+        /* "checkout_onepage_index" => "__sm__initiate_checkout",*/
         /** TODO: Magento 2 - "checkout_index_index" => "__sm__initiate_checkout" */
         "checkout_index_index" => "__sm__initiate_checkout",
-        "catalogsearch_result_index" => "__sm__search",
-        "onestepcheckout_index_index" => "__sm__initiate_checkout",
-        "searchanise_result_index" => "__sm__search"
+        "hyva_checkout_index_index" => "__sm__initiate_checkout",
+        "catalogsearch_result_index" => "__sm__search"
     ];
 
     private static $ins = [
@@ -72,7 +70,23 @@ class Loader extends Template
             return '';
         }
 
-        $lines = [];
+        $lines = [ 'window.mktr = window.mktr || { pending: [], retryCount: 0 };' ];
+        $lines[] = 'window.mktr.debug = function () { if (typeof dataLayer != "undefined") { for (let i of dataLayer) { console.log("Mktr", "Google", i); } } };';
+        $lines[] = 'window.mktr.eventPush = function (data = {}) {
+            if (typeof dataLayer != "undefined") {
+                dataLayer.push(data);
+            } else {
+                window.mktr.pending.push(data);
+                setTimeout(window.mktr.retry, 1000);
+            }
+        }';
+        $lines[] = 'window.mktr.retry = function () {
+            if (typeof dataLayer != "undefined") {
+                for (let data of window.mktr.pending) { dataLayer.push(data); }        
+            } else if (window.mktr.retryCount < 6) {
+                window.mktr.retryCount++; setTimeout(window.mktr.retry, 1000);
+            }
+        };';
 
         $lines[] = vsprintf(self::getHelp()->getConfig->getLoader(), [self::getHelp()->getConfig->getKey()]);
 
@@ -81,17 +95,15 @@ class Loader extends Template
         $eventName = self::getEventName();
 
         if ($eventName != null) {
-            $lines[] = "dataLayer.push(".self::getHelp()->getManager->getEvent($eventName)->toJson().");";
+            $lines[] = "window.mktr.eventPush(".self::getHelp()->getManager->getEvent($eventName)->toJson().");";
         }
-
-        // $lines[] = "console.log('|".self::actionName()."|','eax');";
 
         foreach (self::getHelp()->getConfig->getEventsObs() as $event => $Name) {
             $fName = self::getHelp()->getSessionName.$event;
 
             $eventData = self::getHelp()->getSession->{"get".$fName}();
             if ($eventData) {
-                $lines[] = "dataLayer.push(".self::getHelp()->getManager->getEvent($Name[1], $eventData)->toJson().");";
+                $lines[] = "window.mktr.eventPush(".self::getHelp()->getManager->getEvent($Name[1], $eventData)->toJson().");";
                 if ($Name[0]) {
                     $loadJS[$event] = true;
                 } else {

@@ -49,7 +49,7 @@ class LoadEvents extends Action
                 $eventData = self::getHelp()->getSession->{$fName}();
 
                 if ($eventData) {
-                    $lines[] = "dataLayer.push(".self::getHelp()->getManager->getEvent($Name[1], $eventData)->toJson().");";
+                    $lines[] = "window.mktr.eventPush(".self::getHelp()->getManager->getEvent($Name[1], $eventData)->toJson().");";
 
                     $uName = "uns".self::getHelp()->getSessionName.$event;
                     self::getHelp()->getSession->{$uName}();

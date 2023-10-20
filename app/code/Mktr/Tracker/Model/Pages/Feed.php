@@ -301,13 +301,20 @@ class Feed
         }
 
         $brand = $brand === false || $brand == 'false' ? 'N\A' : $brand;
-
+        $desk = $product->getDescription();
+        
+        if ($desk !== null) {
+            $desk = preg_replace('/[\x00-\x1F\x80-\xFF]/', '', $product->getDescription());
+        } else {
+            $desk = '';
+        }
+        
         $oo = [
             'id' => $product->getId(),
             'sku' => $product->getSku(),
             'name' => ['@cdata'=>$product->getName()],
             'description' => [
-                '@cdata' => preg_replace('/[\x00-\x1F\x80-\xFF]/', '', $product->getDescription())
+                '@cdata' => $desk
             ],
             'url' => $product->getProductUrl(),
             'main_image' => self::getProductImage($product),
