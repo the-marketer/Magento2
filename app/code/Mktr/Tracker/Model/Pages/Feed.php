@@ -56,6 +56,7 @@ class Feed
 
     private static function buildImageUrl($img): string
     {
+        if ($img === null) { $img = ''; }
         if (self::$imageLink === null) {
             /** TODO: Magento 2 */
             self::$imageLink = self::getHelp()->getStore->getBaseUrl(\Magento\Framework\UrlInterface::URL_TYPE_MEDIA).'catalog/product' ;
@@ -66,6 +67,7 @@ class Feed
     private static function getProductImage($product): string
     {
         $img = $product->getImage();
+        if ($img === null) { $img = ''; }
         if (self::$imageLink === null) {
             /** TODO: Magento 2 */
             self::$imageLink = self::getHelp()->getStore->getBaseUrl(\Magento\Framework\UrlInterface::URL_TYPE_MEDIA).'catalog/product';
@@ -338,7 +340,7 @@ class Feed
                     unset($oo[$key]);
                 }
             } elseif ($key == 'media_gallery') {
-                if (empty($val['image'])) {
+                if (empty($val['image']) && array_key_exists('main_image', $oo)) {
                     $oo[$key]['image'] = $oo['main_image'];
                 }
             } else {

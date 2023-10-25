@@ -201,7 +201,7 @@ class Array2XML
 
     private static function bool2str($v)
     {
-        return $v === true ? 'true' : ($v === false ? 'false' : $v);
+        return $v === true ? 'true' : ($v === false ? 'false' : ( $v === null ? '': $v ));
     }
 
     /** @noinspection PhpUnused */
