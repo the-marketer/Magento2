@@ -27,6 +27,7 @@ class Category extends Action
 
     private static $data;
     private static $url;
+    private static $imageLink = null;
 
     public function __construct(Context $context, Data $help)
     {
@@ -74,6 +75,21 @@ class Category extends Action
         return implode("|", $breadcrumb);
     }
 
+    private static function buildImageUrl($img): string
+    {
+        if ($img === null) { $img = ''; }
+        if (self::$imageLink === null) {
+            /** TODO: Magento 2 */
+            self::$imageLink = self::getHelp()->getStore->getBaseUrl(\Magento\Framework\UrlInterface::URL_TYPE_LINK);
+
+            if (substr(self::$imageLink, -1) === '/') {
+                self::$imageLink = substr(self::$imageLink, 0, -1);
+            }
+        }
+
+        return self::$imageLink . (substr($img, 0, 1) === '/' ? '' : '/') . $img;
+    }
+
     public static function build($category)
     {
 
@@ -87,6 +103,8 @@ class Category extends Action
 
         if (empty($newList["image_url"])) {
             unset($newList["image_url"]);
+        } else {
+            $newList["image_url"] = self::buildImageUrl($newList["image_url"]);
         }
 
         self::$data[] = $newList;
