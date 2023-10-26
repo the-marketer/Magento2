@@ -302,7 +302,7 @@ class Feed
             }
         }
 
-        $brand = $brand === false || $brand == 'false' ? 'N\A' : $brand;
+        $brand = empty($brand) || $brand == 'false' ? 'N\A' : $brand;
         $desk = $product->getDescription();
         
         if ($desk !== null) {
@@ -339,7 +339,7 @@ class Feed
                 if (empty($val['variation'])) {
                     unset($oo[$key]);
                 }
-            } elseif ($key == 'media_gallery') {
+            } else if ($key == 'media_gallery') {
                 if (empty($val['image']) && array_key_exists('main_image', $oo)) {
                     $oo[$key]['image'] = $oo['main_image'];
                 }
