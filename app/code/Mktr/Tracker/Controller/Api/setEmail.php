@@ -84,7 +84,7 @@ class setEmail extends Action
                     }
                     if ($customer->getName() !== null && $customer->getName() !== ' ') {
                         $info["name"] = $customer->getName();
-                    } elseif ($customer->getFirstname() === null && $customer->getLastname() === null) {
+                    } elseif ($customer->getFirstname() === null && $customer->getLastname() === null &&  $customer->getEmail() !== null) {
                         $info["name"] = explode("@", $customer->getEmail())[0];
                     } elseif ($customer->getFirstname() !== null && $customer->getLastname() !== null) {
                         $info["name"] = $customer->getFirstname().' '.$customer->getLastname();
@@ -93,7 +93,7 @@ class setEmail extends Action
                     } elseif ($customer->getLastname() !== null) {
                         $info["name"] = $customer->getLastname();
                     } else {
-                        $info["name"] = explode("@", $sEmail['email'])[0];
+                        $info["name"] = explode("@", $sEmail['email_address'])[0];
                     }
 
                     self::getHelp()->getApi->send("add_subscriber", $info);
