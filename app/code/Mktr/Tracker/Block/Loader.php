@@ -73,13 +73,18 @@ class Loader extends Template
         $lines = [ 'window.mktr = window.mktr || { pending: [], retryCount: 0 };' ];
         $lines[] = 'window.mktr.debug = function () { if (typeof dataLayer != "undefined") { for (let i of dataLayer) { console.log("Mktr", "Google", i); } } };';
         $lines[] = 'window.mktr.eventPush = function (data = {}) {
-            if (typeof dataLayer != "undefined") {
-                dataLayer.push(data);
-            } else {
-                window.mktr.pending.push(data);
-                setTimeout(window.mktr.retry, 1000);
+            if (typeof dataLayer != "undefined") { dataLayer.push(data); } else {
+                window.mktr.pending.push(data); setTimeout(window.mktr.retry, 1000);
             }
         }';
+
+        $baseURL = self::getHelp()->getBaseUrl;
+
+        $lines[] = 'window.mktr.loadScript = function (mktrPage = null) {
+            if (mktrPage !== null) { let time = (new Date()).getTime(); let url = "'.$baseURL.'mktr/api/"+mktrPage;
+                let add = document.createElement("script"); add.async = true; add.src = url + ( url.includes("?") ? "&mk=" : "?mk=") + time;
+                let s = document.getElementsByTagName("script")[0]; s.parentNode.insertBefore(add,s); } }';
+        $lines[] = 'window.mktr.loadEvents = function () { window.mktr.loadScript("LoadEvents"); };';
         $lines[] = 'window.mktr.retry = function () {
             if (typeof dataLayer != "undefined") {
                 for (let data of window.mktr.pending) { dataLayer.push(data); }        
@@ -98,41 +103,18 @@ class Loader extends Template
             $lines[] = "window.mktr.eventPush(".self::getHelp()->getManager->getEvent($eventName)->toJson().");";
         }
 
-        foreach (self::getHelp()->getConfig->getEventsObs() as $event => $Name) {
-            $fName = self::getHelp()->getSessionName.$event;
-
-            $eventData = self::getHelp()->getSession->{"get".$fName}();
-            if ($eventData) {
-                $lines[] = "window.mktr.eventPush(".self::getHelp()->getManager->getEvent($Name[1], $eventData)->toJson().");";
-                if ($Name[0]) {
-                    $loadJS[$event] = true;
-                } else {
-                    self::getHelp()->getSession->{"uns".$fName}();
-                }
-            }
-        }
-
-        $baseURL = self::getHelp()->getBaseUrl;
-
-        foreach ($loadJS as $k => $v) {
-            $lines[] = '(function(){ let add = document.createElement("script"); add.async = true; add.src = "'.$baseURL.'mktr/api/'.$k.'"; let s = document.getElementsByTagName("script")[0]; s.parentNode.insertBefore(add,s); })();';
-        }
-
         $lines[] = "
         window.isLoad = false;
         require(['Magento_Customer/js/customer-data'], function (customerData) {
             var cart = customerData.get('cart');
             var count = cart().summary_count;
             cart.subscribe(function () {
-                if (cart().summary_count !== count && window.isLoad) {
-                    count = cart().summary_count;
-                    (function(){ let add = document.createElement('script');add.async = true; add.src = '".$baseURL."mktr/api/LoadEvents';
-                    let s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(add,s); })();
-                } else {
-                    window.isLoad = true;
-                }
+                if (cart().summary_count !== count && window.isLoad) { count = cart().summary_count; window.mktr.loadEvents(); } else { window.isLoad = true; }
             });
-        });";
+        });
+        setTimeout(window.mktr.loadEvents, 1000);
+        ";
+        $lines[] = 'window.addEventListener("click", function(event){ if (event.target.matches("' . str_replace('"','\"',self::getHelp()->getConfig->getSelectors()) . '")) { setTimeout(window.mktr.loadEvents, 3000); } });';
 
         $lines[] = 'window.MktrDebug = function () { if (typeof dataLayer != undefined) { for (let i of dataLayer) { console.log("Mktr","Google",i); } } };';
 

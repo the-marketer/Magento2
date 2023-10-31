@@ -16,8 +16,6 @@ use Mktr\Tracker\Helper\Data;
 
 class LoadEvents extends Action
 {
-    // private static $cons = null;
-
     private static $ins = [
         "Help" => null,
         "Config" => null
@@ -27,7 +25,6 @@ class LoadEvents extends Action
     {
         parent::__construct($context);
         self::$ins['Help'] = $help;
-        // self::$cons = $this;
     }
 
     /** TODO: Magento 2 */
@@ -42,19 +39,28 @@ class LoadEvents extends Action
     public function execute()
     {
         $lines = [];
+        $loadJS = [];
         foreach (self::getHelp()->getConfig->getEventsObs() as $event => $Name) {
-            if (!$Name[0]) {
-                $fName = "get".self::getHelp()->getSessionName.$event;
+            $fName = self::getHelp()->getSessionName.$event;
 
-                $eventData = self::getHelp()->getSession->{$fName}();
+            $eventData = self::getHelp()->getSession->{"get".$fName}();
 
-                if ($eventData) {
-                    $lines[] = "window.mktr.eventPush(".self::getHelp()->getManager->getEvent($Name[1], $eventData)->toJson().");";
-
-                    $uName = "uns".self::getHelp()->getSessionName.$event;
-                    self::getHelp()->getSession->{$uName}();
+            if ($eventData) {
+                $lines[] = "window.mktr.eventPush(".self::getHelp()->getManager->getEvent($Name[1], $eventData)->toJson().");";
+                if (!$Name[0]) {
+                    self::getHelp()->getSession->{"uns".$fName}();
+                } else {
+                    if ($Name[0]) {
+                        $loadJS[$event] = true;
+                    } else {
+                        self::getHelp()->getSession->{"uns".$fName}();
+                    }
                 }
             }
+        }
+
+        foreach ($loadJS as $k => $v) {
+            $lines[] = 'window.mktr.loadScript("'.$k.'");';
         }
 
         $result = self::getHelp()->getPageRaw;

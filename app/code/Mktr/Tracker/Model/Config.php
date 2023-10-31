@@ -263,6 +263,12 @@ importScripts("https://t.themarketer.com/firebase.js");';
     }
 
     /** @noinspection PhpUnused */
+    public static function getSelectors()
+    {
+        return self::getValue('selectors');
+    }
+
+    /** @noinspection PhpUnused */
     public static function getUpdateFeed()
     {
         return self::getValue('update_feed');
