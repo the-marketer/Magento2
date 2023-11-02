@@ -20,11 +20,12 @@ class Loader extends Template
         "cms_index_index" => "__sm__view_homepage",
         "catalog_category_view" => "__sm__view_category",
         "catalog_product_view" => "__sm__view_product",
-        /* "checkout_cart_index" => "Cart", */
-        /* "checkout_onepage_index" => "__sm__initiate_checkout",*/
-        /** TODO: Magento 2 - "checkout_index_index" => "__sm__initiate_checkout" */
+        "onepagecheckout_index_index" => "__sm__initiate_checkout",
+        "checkout_onepage_index" => "__sm__initiate_checkout",
         "checkout_index_index" => "__sm__initiate_checkout",
+        "onestepcheckout_index_index" => "__sm__initiate_checkout",
         "hyva_checkout_index_index" => "__sm__initiate_checkout",
+        "searchanise_result_index" => "__sm__search",
         "catalogsearch_result_index" => "__sm__search"
     ];
 
