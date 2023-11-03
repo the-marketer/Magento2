@@ -27,6 +27,7 @@ class Loader extends Template
         "hyva_checkout_index_index" => "__sm__initiate_checkout",
         "hyva_reactcheckout_reactcheckout_index" => "__sm__initiate_checkout",
         "hyvareactcheckout_reactcheckout_index" => "__sm__initiate_checkout",
+        "hyvaReactCheckout_reactcheckout_index"=> "__sm__initiate_checkout",
         "hyva_react_checkout_react_checkout_index" => "__sm__initiate_checkout",
         "hyva_react_checkout_reactcheckout_index" => "__sm__initiate_checkout",
         "searchanise_result_index" => "__sm__search",
