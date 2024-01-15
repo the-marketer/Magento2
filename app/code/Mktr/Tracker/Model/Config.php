@@ -38,8 +38,10 @@ importScripts("https://t.themarketer.com/firebase.js");';
         'customer_id'=>'mktr_tracker/tracker/customer_id',
         'cron_feed' => 'mktr_tracker/tracker/cron_feed',
         'update_feed' => 'mktr_tracker/tracker/update_feed',
-        'cron_review' => 'mktr_tracker/tracker/cron_feed',
-        'update_review' => 'mktr_tracker/tracker/update_feed',
+        'cron_review' => 'mktr_tracker/tracker/cron_review',
+        'update_review' => 'mktr_tracker/tracker/update_review',
+        'cron_subscribe' => 'mktr_tracker/tracker/cron_subscribe',
+        'update_subscribe' => 'mktr_tracker/tracker/update_subscribe',
         'opt_in' => 'mktr_tracker/tracker/opt_in',
         'push_status' => 'mktr_tracker/tracker/push_status',
         'default_stock' => 'mktr_tracker/tracker/default_stock',
@@ -279,10 +281,20 @@ importScripts("https://t.themarketer.com/firebase.js");';
     {
         return (int) self::getValue('cron_review');
     }
+    /** @noinspection PhpUnused */
+    public static function getCronSubscribe()
+    {
+        return (int) self::getValue('cron_subscribe');
+    }
 
     /** @noinspection PhpUnused */
     public static function getUpdateReview()
     {
         return self::getValue('update_review');
+    }
+    /** @noinspection PhpUnused */
+    public static function getUpdateSubscribe()
+    {
+        return self::getValue('update_subscribe');
     }
 }

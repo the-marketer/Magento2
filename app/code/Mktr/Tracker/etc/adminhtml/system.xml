@@ -83,6 +83,22 @@
                     </depends>
                     <comment><![CDATA[Set number of hours]]></comment>
                 </field>
+                <field id="cron_subscribe" translate="label" type="select" sortOrder="33"
+                               showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Activate Cron UnSubscribe Check</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <depends>
+                        <field id="*/*/status">1</field>
+                    </depends>
+                </field>
+                <field id="update_subscribe" translate="label" type="text" sortOrder="34"
+                       showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Cron Update UnSubscribe Check every (hours)</label>
+                    <depends>
+                        <field id="*/*/cron_subscribe">1</field>
+                    </depends>
+                    <comment><![CDATA[Set number of hours]]></comment>
+                </field>
                 <field id="opt_in" translate="label" type="select" sortOrder="40"
                        showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Double opt-in setting</label>

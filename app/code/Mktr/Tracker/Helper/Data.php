@@ -31,6 +31,7 @@ class Data extends AbstractHelper
         "getArray2XML" => [null,'get','\Mktr\Tracker\Model\Array2XML'],
         "getData" => [null,'get','\Mktr\Tracker\Model\Data'],
         "getPagesReviews" => [null,'get','\Mktr\Tracker\Model\Pages\Reviews'],
+        "getPagesSubscribes" => [null,'get','\Mktr\Tracker\Model\Pages\Subscribes'],
         "getPagesFeed" => [null, 'get', '\Mktr\Tracker\Model\Pages\Feed'],
         "getRequest" => [null,'get','\Magento\Framework\App\Request\Http'],
         "getWebsite" => [null,'getWebsite','\Magento\Store\Model\StoreManagerInterface'],

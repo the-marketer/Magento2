@@ -22,6 +22,8 @@
                 <update_feed>4</update_feed>
                 <cron_review>0</cron_review>
                 <update_review>4</update_review>
+                <cron_subscribe>0</cron_subscribe>
+                <update_subscribe>4</update_subscribe>
                 <opt_in>0</opt_in>
                 <push_status>0</push_status>
                 <default_stock>0</default_stock>

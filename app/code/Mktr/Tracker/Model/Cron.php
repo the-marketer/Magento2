@@ -41,6 +41,7 @@ class Cron
     {
         $upFeed = self::getHelp()->getData->update_feed;
         $upReview = self::getHelp()->getData->update_review;
+        $upSubscribe = self::getHelp()->getData->update_subscribe;
 
         foreach (self::getStores() as $k) {
             if ($k->getId() != 0) {
@@ -61,6 +62,11 @@ class Cron
                         self::getHelp()->getPagesReviews->execute();
                         self::getHelp()->getData->update_review =
                             strtotime("+".self::getHelp()->getConfig->getUpdateReview()." hour");
+                    }
+                    if (self::getHelp()->getConfig->getCronSubscribe() != 0 && $upSubscribe < time()) {
+                        self::getHelp()->getPagesSubscribes->execute();
+                        self::getHelp()->getData->update_subscribe =
+                            strtotime("+".self::getHelp()->getConfig->getUpdateSubscribe()." hour");
                     }
                 }
             }

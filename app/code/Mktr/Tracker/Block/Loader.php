@@ -120,8 +120,12 @@ class Loader extends Template
         });
         setTimeout(window.mktr.loadEvents, 1000);
         ";
-        $lines[] = 'window.addEventListener("click", function(event){ if (event.target.matches("' . str_replace('"','\"',self::getHelp()->getConfig->getSelectors()) . '")) { setTimeout(window.mktr.loadEvents, 3000); } });';
-
+        $selector = self::getHelp()->getConfig->getSelectors();
+        
+        if ($selector !== null) {
+            $lines[] = 'window.addEventListener("click", function(event){ if (event.target.matches("' . str_replace('"','\"',self::getHelp()->getConfig->getSelectors()) . '")) { setTimeout(window.mktr.loadEvents, 3000); } });';
+        }
+        
         $lines[] = 'window.MktrDebug = function () { if (typeof dataLayer != undefined) { for (let i of dataLayer) { console.log("Mktr","Google",i); } } };';
 
         // $lines[] = 'console.log("Mktr","ActionName","'.self::actionName().'");';

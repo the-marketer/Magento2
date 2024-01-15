@@ -122,7 +122,7 @@ class Reviews
 
                     $added[(string) $value->review_id] = $review->getId();
                 } else {
-                    $added[(string) $value->review_id] = self::getHelp()->getData->reviewStore[(string) $value->review_id];
+                    $added[(string) $value->review_id] = $revStore[(string) $value->review_id];
                 }
             }
         }
