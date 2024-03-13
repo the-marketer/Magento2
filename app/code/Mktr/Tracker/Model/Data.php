@@ -44,7 +44,7 @@ class Data
     public function __get($name)
     {
         if (!isset(self::$data[$name])) {
-            if ($name == 'update_feed' || $name == 'update_review') {
+            if ($name == 'update_feed' || $name == 'update_review' || $name == 'update_subscribe') {
                 self::$data[$name] = 0;
             } else {
                 self::$data[$name] = null;
