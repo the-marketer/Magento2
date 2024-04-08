@@ -20,6 +20,10 @@ https://mag2.eaxdev.ga/mktr/Api/CodeGenerator?key=9DWMV0YM&value=0&type=2&expira
 
 https://mag2.eaxdev.ga/mktr/api/Reviews?key=9DWMV0YM&start_date=2000-01-01
 
+https://mag2.eaxdev.ga/mktr/api/Subscribes?key=9DWMV0YM&date_from=2000-01-01
+
+&date_to=
+
 &mime-type=json
 &mime-type=xml
 
