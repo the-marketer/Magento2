@@ -129,20 +129,23 @@ class Feed
             ->addAttributeToFilter('visibility', ['neq' => Visibility::VISIBILITY_NOT_VISIBLE])
             ->addAttributeToFilter('status', Status::STATUS_ENABLED);
 
-        $pages = $stop ? self::$params['page'] : self::$data['products']->getLastPageNumber();
+        $lastPage = self::$data['products']->getLastPageNumber();
 
-        do {
-            self::$data['products']->setCurPage(self::$params['page'])->load();
-
-            foreach (self::$data['products'] as $product) {
-                $oo = self::getProductById($product->getId());
-                if ($oo !== false) {
-                    $or[] = $oo;
+        if ($lastPage >= self::$params['page']) {
+            $pages = $stop ? self::$params['page'] : self::$data['products']->getLastPageNumber();
+            do {
+                self::$data['products']->setCurPage(self::$params['page'])->load();
+    
+                foreach (self::$data['products'] as $product) {
+                    $oo = self::getProductById($product->getId());
+                    if ($oo !== false) {
+                        $or[] = $oo;
+                    }
                 }
-            }
-            self::$params['page']++;
-            self::$data['products']->clear();
-        } while (self::$params['page'] <= $pages);
+                self::$params['page']++;
+                self::$data['products']->clear();
+            } while (self::$params['page'] <= $pages);
+        }
 
         return $or;
     }

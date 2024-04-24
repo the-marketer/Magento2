@@ -107,7 +107,7 @@ class Subscribes
                 if ($e->getStatus() !== null) {
                     $subStore[$restKey][$email] = $tt;
                     $sub = $e->setStatus(\Magento\Newsletter\Model\Subscriber::STATUS_UNSUBSCRIBED);
-                    $e->save();
+                    $sub->save();
                 }
             }
     
