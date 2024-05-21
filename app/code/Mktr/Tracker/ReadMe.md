@@ -7,20 +7,20 @@
 // $module->deleteFile("firebase-messaging-sw.js");
 ```
 
-https://mag2.eaxdev.ga/mktr/api/Feed?key=9DWMV0YM
-https://mag2.eaxdev.ga/mktr/api/Category?key=9DWMV0YM
-https://mag2.eaxdev.ga/mktr/api/Brands?key=9DWMV0YM
-https://mag2.eaxdev.ga/mktr/api/Orders?key=9DWMV0YM&start_date=2000-01-01
+https://example.com/mktr/api/Feed?key={API_KEY}
+https://example.com/mktr/api/Category?key={API_KEY}
+https://example.com/mktr/api/Brands?key={API_KEY}
+https://example.com/mktr/api/Orders?key={API_KEY}&start_date=2000-01-01
 
-https://mag2.eaxdev.ga/mktr/api/Orders?key=9DWMV0YM&start_date=2000-01-01&page=2&limit=2
+https://example.com/mktr/api/Orders?key={API_KEY}&start_date=2000-01-01&page=2&limit=2
 
-https://mag2.eaxdev.ga/mktr/Api/CodeGenerator?key=9DWMV0YM&value=50&type=0&expiration_date=2023-08-09
-https://mag2.eaxdev.ga/mktr/Api/CodeGenerator?key=9DWMV0YM&value=50&type=1&expiration_date=2023-08-09
-https://mag2.eaxdev.ga/mktr/Api/CodeGenerator?key=9DWMV0YM&value=0&type=2&expiration_date=2023-08-09
+https://example.com/mktr/Api/CodeGenerator?key={API_KEY}&value=50&type=0&expiration_date=2023-08-09
+https://example.com/mktr/Api/CodeGenerator?key={API_KEY}&value=50&type=1&expiration_date=2023-08-09
+https://example.com/mktr/Api/CodeGenerator?key={API_KEY}&value=0&type=2&expiration_date=2023-08-09
 
-https://mag2.eaxdev.ga/mktr/api/Reviews?key=9DWMV0YM&start_date=2000-01-01
+https://example.com/mktr/api/Reviews?key={API_KEY}&start_date=2000-01-01
 
-https://mag2.eaxdev.ga/mktr/api/Subscribes?key=9DWMV0YM&date_from=2000-01-01
+https://example.com/mktr/api/Subscribes?key={API_KEY}&date_from=2000-01-01
 
 &date_to=
 

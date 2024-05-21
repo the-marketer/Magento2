@@ -111,19 +111,26 @@ class Loader extends Template
 
         $lines[] = "
         window.isLoad = false;
-        require(['Magento_Customer/js/customer-data'], function (customerData) {
-            var cart = customerData.get('cart');
-            var count = cart().summary_count;
-            cart.subscribe(function () {
-                if (cart().summary_count !== count && window.isLoad) { count = cart().summary_count; window.mktr.loadEvents(); } else { window.isLoad = true; }
+        if (typeof require !== 'undefined') {
+            require(['Magento_Customer/js/customer-data'], function (customerData) {
+                var cart = customerData.get('cart');
+                var count = cart().summary_count;
+                cart.subscribe(function () {
+                    if (cart().summary_count !== count && window.isLoad) { count = cart().summary_count; window.mktr.loadEvents(); } else { window.isLoad = true; }
+                });
             });
-        });
+        }
         setTimeout(window.mktr.loadEvents, 1000);
         ";
         $selector = self::getHelp()->getConfig->getSelectors();
         
         if (!empty($selector)) {
-            $lines[] = 'window.addEventListener("click", function(event){ if (event.target.matches("' . str_replace('"', '\"', $selector) . '")) { setTimeout(window.mktr.loadEvents, 3000); } });';
+            $lines[] = 'window.addEventListener("click", function(event){ 
+                let selector1 = "' . str_replace('"', '\"', $selector) . '";
+                let closestElem1 = event.target.closest(selector1);
+                let closestElem2 = event.target.matches(selector1);
+                if (closestElem1 || closestElem2) { setTimeout(window.mktr.loadEvents, 3000); }
+            });';
         }
         
         $lines[] = 'window.MktrDebug = function () { if (typeof dataLayer != undefined) { for (let i of dataLayer) { console.log("Mktr","Google",i); } } };';

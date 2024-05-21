@@ -63,12 +63,10 @@ class setEmail extends Action
         if ($sApi !== null) {
             $sEmail = self::getHelp()->getSession->{"get".$fName}();
             if ($sEmail !== null) {
+                $skip = false;
                 /** @noinspection DuplicatedCode */
                 $nws = self::getSubscriber()->loadByEmail($sEmail["email_address"]);
-
-                $info = [
-                    "email" => $sEmail['email_address']
-                ];
+                $info = [ "email" => $sEmail['email_address'] ];
 
                 if ($nws && $nws->getStatus() == \Magento\Newsletter\Model\Subscriber::STATUS_SUBSCRIBED) {
                     $customer = self::getHelp()->getCustomerData
@@ -99,24 +97,28 @@ class setEmail extends Action
                     self::getHelp()->getApi->send("add_subscriber", $info);
                     $lines = "setEmailAdd";
                 } else {
-                    self::getHelp()->getApi->send("remove_subscriber", $info);
+                    $skip = true;
+                    // self::getHelp()->getApi->send("remove_subscriber", $info);
                     $lines = "setEmailRemove";
                 }
 
-                if (self::getHelp()->getApi->getStatus() == 200) {
+                if ($skip === true || self::getHelp()->getApi->getStatus() == 200) {
                     $fNameP = self::getHelp()->getSessionName . 'setPhone';
                     if (self::getHelp()->getSession->{"get".$fNameP}()) {
                         self::getHelp()->getSession->{"uns".$fNameP}();
                     }
                     self::getHelp()->getSession->{"uns".$fName}();
+                    if ($skip !== true) {
+                        /** TODO Magento 1 - setBody() | Magento 2 - setContents()  */
+                        $result->setContents("console.log('".$lines."', '".
+                            self::getHelp()->getApi->getStatus()."', '".
+                            self::getHelp()->getApi->getBody()."', '".
+                            self::getHelp()->getApi->getUrl()."','".
+                            json_encode(self::getHelp()->getApi->getParam())."');");
+                    }
+                } else {
+                    $result->setContents("console.log('null');");
                 }
-
-                /** TODO Magento 1 - setBody() | Magento 2 - setContents()  */
-                $result->setContents("console.log('".$lines."', '".
-                    self::getHelp()->getApi->getStatus()."', '".
-                    self::getHelp()->getApi->getBody()."', '".
-                    self::getHelp()->getApi->getUrl()."','".
-                    json_encode(self::getHelp()->getApi->getParam())."');");
             } else {
                 $result->setContents("console.log('null');");
             }

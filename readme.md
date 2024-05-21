@@ -1,4 +1,4 @@
-# <img style="height:35px;vertical-align: middle;" src="https://github.com/eaxlex/OpenCart-System/blob/latest/library/mktr/logo.png" alt="TheMarketer"> TheMarketer - Magento 2
+# <img style="height:35px;vertical-align: middle;" src="https://github.com/the-marketer/OpenCart-System/blob/latest/library/mktr/logo.png" alt="TheMarketer"> TheMarketer - Magento 2
 
 ## Compatible with:
     - Magento 2
