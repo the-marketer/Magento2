@@ -194,7 +194,7 @@ class Events implements ObserverInterface
             foreach ($saveOrder->getAllVisibleItems() as $item) {
                 $products[] = [
                     'product_id' => $item->getProductId(),
-                    'price' => self::getHelp()->getFunc->digit2(self::getHelp()->getTax->getTaxPrice($item, $item->getPrice(), true)),
+                    'price' => self::getHelp()->getFunc->digit2($item->getFinalPriceInclTax() > 0 ? $item->getPriceInclTax() : $item->getPriceInclTax()),
                     'quantity' => (int) $item->getQtyOrdered(),
                     'variation_sku' => $item->getSku()
                 ];

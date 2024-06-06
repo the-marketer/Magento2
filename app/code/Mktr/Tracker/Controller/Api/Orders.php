@@ -78,13 +78,20 @@ class Orders extends Action
             }
 
             $pro->setStoreId(self::getHelp()->getFunc->getStoreId());
-
+/*
             $price = self::getHelp()->getFunc->digit2(
                 self::getHelp()->getTax->getTaxPrice($item, $item->getPrice(), true)
             );
-
             $sale_price = $item->getFinalPrice() > 0 ? self::getHelp()->getFunc->digit2(
                 self::getHelp()->getTax->getTaxPrice($item, $item->getFinalPrice(), true)
+            ) : $price;
+*/          
+            $price = self::getHelp()->getFunc->digit2(
+                $item->getPriceInclTax()
+            );
+            
+            $sale_price = $item->getFinalPriceInclTax() > 0 ? self::getHelp()->getFunc->digit2(
+                $item->getFinalPriceInclTax()
             ) : $price;
 
             $ct = self::getHelp()->getManager->buildMultiCategory($pro->getCategoryIds());
