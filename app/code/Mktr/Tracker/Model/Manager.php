@@ -227,18 +227,43 @@ class Manager
     }
 
     /** @noinspection PhpMissingReturnTypeInspection */
-    public static function buildMultiCategory($List)
-    {
+    public static function buildMultiCategory($List) {
+        
         self::$bMultiCat = [];
         foreach ($List as $key => $value) {
             $categoryRegistry = self::getHelp()->getCategoryRepo->load($value);
-            self::buildSingleCategory($categoryRegistry);
-        }
 
+            if ($categoryRegistry->getLevel() == 2) {
+                self::$bMultiCat[$categoryRegistry->getPath()][] = $categoryRegistry->getName();
+            } else {
+                foreach (self::$bMultiCat as $key => $value) {
+                    if (strpos($categoryRegistry->getPath(), $key) !== false) {
+                        self::$bMultiCat[$key][] = $categoryRegistry->getName();
+                    }
+                }
+            }
+        }
         if (empty(self::$bMultiCat)) {
             self::$bMultiCat[] = "Default Category";
         }
-        return implode("|", array_reverse(self::$bMultiCat));
+
+        $subTrees = [];
+        foreach (self::$bMultiCat as $categoryTree) {
+            if (is_array($categoryTree)) {
+                $subTrees[] = implode('|', $categoryTree);
+            } else {
+                $subTrees[] = $categoryTree;
+            }
+        }
+
+        $categoriesTree = $subTrees;
+        if (is_array($categoriesTree)) {
+            $categoriesTree = implode('||', $subTrees);
+        } else {
+            $categoriesTree = $subTrees;
+        }
+
+        return $categoriesTree;
     }
 
     public static function buildSingleCategory($categoryRegistry)
