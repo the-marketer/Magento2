@@ -86,8 +86,9 @@ class Subscribes
 
         if ($r !== null) {
             $restKey = self::getHelp()->getConfig->getRestKey();
-            $subStore = self::getHelp()->getData->subStore;
+            // $subStore = self::getHelp()->getData->subStore;
             
+            /*
             if (!isset($subStore[$restKey])) {
                 $subStore[$restKey] = [];
             }
@@ -97,22 +98,28 @@ class Subscribes
                     unset($subStore[$restKey][$k]);
                 }
             }
-    
+            */
             foreach ($r as $email) {
-                if (array_key_exists($email, $subStore[$restKey])) {
-                    continue;
-                }
                 $e = self::getSubscriber()->loadByEmail($email);
-                
-                if ($e->getStatus() !== null) {
-                    $subStore[$restKey][$email] = $tt;
-                    $sub = $e->setStatus(\Magento\Newsletter\Model\Subscriber::STATUS_UNSUBSCRIBED);
-                    $sub->save();
+                $statusSub = $e->getStatus();
+                if (
+                    $statusSub !== null &&
+                    $statusSub == \Magento\Newsletter\Model\Subscriber::STATUS_SUBSCRIBED &&
+                    $statusSub != \Magento\Newsletter\Model\Subscriber::STATUS_UNSUBSCRIBED
+                ) {
+                    // $subStore[$restKey][$email] = $tt;
+                    // $sub = $e->setStatus(\Magento\Newsletter\Model\Subscriber::STATUS_UNSUBSCRIBED);
+                    if ($e->getCode() !== null) {
+                        $sub = $e->setCheckCode($e->getCode())->unsubscribe();
+                    } else {
+                        $sub = $e->unsubscribe();
+                    }
+                    $e->save();
                 }
             }
     
-            self::getHelp()->getData->subStore = $subStore;
-            self::getHelp()->getData->save();
+            // self::getHelp()->getData->subStore = $subStore;
+            // self::getHelp()->getData->save();
             $xml = ['status' => $r];
         } else {
             $xml = ['status' => 'N\A'];
