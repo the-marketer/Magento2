@@ -33,6 +33,7 @@ class Reviews
         }
         return self::$rev;
     }
+    
     public function rating()
     {
         if (self::$rating == null) {
@@ -69,10 +70,17 @@ class Reviews
 
     public function execute()
     {
+        $xml = ['execute' => 'none'];
         $t = self::getHelp()->getRequest->getParam("start_date") ?? date('Y-m-d');
         $o = self::getHelp()->getApi->send("product_reviews", ['t' => strtotime($t)], false);
+        
+        if ($o->getContent() == 'Access not allowed' || $o->getContent() == 'false' || $o->getContent() == false) {
+            return $xml;
+        }
 
         $xml = simplexml_load_string($o->getContent(), 'SimpleXMLElement', LIBXML_NOCDATA);
+        $key = 'key'.self::getHelp()->getConfig->getRestKey();
+
         $rating = [
             /*
             1 => array(1 => 1,  2 => 2,  3 => 3,  4 => 4,  5 => 5), //quality
@@ -81,13 +89,24 @@ class Reviews
             */
             4 => [1 => 16, 2 => 17, 3 => 18, 4 => 19, 5 => 20] //rating
         ];
-
-        $added = [];
-        $revStore = self::getHelp()->getData->{"reviewStore".self::getHelp()->getConfig->getRestKey()};
+        
+        $ratingCollection = $this->rating()->getResourceCollection()->getItems();
+        $rating = [];
+        
+        foreach ($ratingCollection as $k => $v) {
+            if ($v->getIsActive() == 1) {
+                $s = 1;
+                foreach($v->getOptions() as $kk => $vv) {
+                    $rating[$vv->getRatingId()][$s] = (int) $vv->getOptionId();
+                    $s++;
+                }
+            }
+        }
 
         foreach ($xml->review as $value) {
             if (isset($value->review_date)) {
-                if (!isset($revStore[(string) $value->review_id])) {
+                $revID = (string) $value->review_id;
+                if (!isset(self::getHelp()->getReviewLogs->i()->{$key}[$revID])) {
                     $review = $this->rev();
                     $review->unsetData('review_id');
                     $review->setCreatedAt($value->review_date); //created date and time
@@ -111,24 +130,41 @@ class Reviews
                     $review->setStores(self::getStoreList()); //store id's
 
                     $review->save();
-                    foreach ($rating as $key => $vv) {
+
+                    $comment_id = $review->getId();
+
+                    foreach ($rating as $kk => $vv) {
+                        $rate = (int) $value->rating;
+                        if ($rate > 0) {
+                            $rate = round(((int) $value->rating / 2));
+                        } else {
+                            $rate = 1;
+                        }
+
                         $this->rating()
-                            ->setRatingId($key)
-                            ->setReviewId($review->getId())//$value->review_id
+                            ->setRatingId($kk)
+                            ->setReviewId($comment_id)//$value->review_id
                             // ->setCustomerId($_customerId)
-                            ->addOptionVote($vv[round(((int)$value->rating / 2))], $value->product_id);
+                            ->addOptionVote($vv[$rate], $value->product_id);
                     }
+
                     $review->aggregate();
 
-                    $added[(string) $value->review_id] = $review->getId();
-                } else {
-                    $added[(string) $value->review_id] = $revStore[(string) $value->review_id];
+                    self::getHelp()->getReviewLogs->i()->addTo($key, [ 'id' => $comment_id, 'expire' => strtotime("+10 day")] , $revID);
                 }
             }
         }
 
-        self::getHelp()->getData->{"reviewStore".self::getHelp()->getConfig->getRestKey()} = $added;
-        self::getHelp()->getData->save();
+        $revStore = array();
+
+        foreach (self::getHelp()->getReviewLogs->i()->{$key} as $k => $val) {
+            if (time() < $val['expire']) {
+                $revStore[$k] = $val;
+            }
+        }
+
+        self::getHelp()->getReviewLogs->i()->{$key} = $revStore;
+        self::getHelp()->getReviewLogs->i()->save();
 
         return $xml;
     }

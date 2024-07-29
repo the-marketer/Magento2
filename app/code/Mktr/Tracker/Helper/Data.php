@@ -30,6 +30,7 @@ class Data extends AbstractHelper
         "getManager" => [null,'get','\Mktr\Tracker\Model\Manager'],
         "getArray2XML" => [null,'get','\Mktr\Tracker\Model\Array2XML'],
         "getData" => [null,'get','\Mktr\Tracker\Model\Data'],
+        "getReviewLogs" => [null,'get','\Mktr\Tracker\Model\ReviewLogs'],
         "getPagesReviews" => [null,'get','\Mktr\Tracker\Model\Pages\Reviews'],
         "getPagesSubscribes" => [null,'get','\Mktr\Tracker\Model\Pages\Subscribes'],
         "getPagesFeed" => [null, 'get', '\Mktr\Tracker\Model\Pages\Feed'],

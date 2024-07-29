@@ -13,7 +13,7 @@
         xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Cron:etc/crontab.xsd">
     <group id="mktr">
         <job name="cron_gen" instance="\Mktr\Tracker\Model\Cron" method="execute">
-            <schedule>0 */1 * * *</schedule>
+            <schedule>0 * * * *</schedule>
         </job>
     </group>
 </config>
