@@ -78,7 +78,9 @@ class setEmail extends Action
                             ->load($customer->getDefaultShipping());
 
                         $customerData = $address->getData();
-                        $info["phone"] = self::getHelp()->getFunc->validateTelephone($customerData['telephone']);
+                        if (isset($customerData['telephone'])) {
+                            $info["phone"] = self::getHelp()->getFunc->validateTelephone($customerData['telephone']);
+                        }
                     }
                     if ($customer->getName() !== null && $customer->getName() !== ' ') {
                         $info["name"] = $customer->getName();

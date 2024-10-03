@@ -324,7 +324,7 @@ class Feed
             'url' => $product->getProductUrl(),
             'main_image' => self::getProductImage($product),
             'category' => [ '@cdata' => $listCategory ],
-            'brand' => ['@cdata'=>$brand],
+            'brand' => [ '@cdata' => $brand ],
             'acquisition_price' => 0,
             'price' => self::getHelp()->getFunc->digit2($price),
             'sale_price' => self::getHelp()->getFunc->digit2($salePrice),
