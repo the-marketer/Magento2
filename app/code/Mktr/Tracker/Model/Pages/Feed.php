@@ -126,7 +126,7 @@ class Feed
             // ->setStoreId(self::getHelp()->getFunc->getStoreId())
             // ->addWebsiteFilter(self::getHelp()->getFunc->getStoreId())
             // ->addFieldToFilter('store_id',array('in', self::getHelp()->getFunc->getStoreId()))
-            ->addAttributeToFilter('visibility', ['neq' => Visibility::VISIBILITY_NOT_VISIBLE])
+            ->addAttributeToFilter('visibility', ['neq' => \Magento\Catalog\Model\Product\Visibility::VISIBILITY_NOT_VISIBLE])
             ->addAttributeToFilter('status', Status::STATUS_ENABLED);
 
         $lastPage = self::$data['products']->getLastPageNumber();
@@ -197,10 +197,10 @@ class Feed
             $variants = $product->getTypeInstance()->getUsedProducts($product);
             foreach ($variants as $p) {
 
-                $vPrice = $p->getPrice();
+                $vPrice = $p->getPriceInfo()->getPrice('regular_price')->getValue();
                 if (!empty((float)$vPrice)) {
 
-                    $vFinalPrice = $product->getFinalPrice();
+                    $vFinalPrice = $p->getPriceInfo()->getPrice('final_price')->getValue();
                     $vSalePrice = empty((float)$vFinalPrice) ? $vPrice : $vFinalPrice;
                     $attribute = [
                         'color' => null,
