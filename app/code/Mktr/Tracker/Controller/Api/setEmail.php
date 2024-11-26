@@ -105,6 +105,7 @@ class setEmail extends Action
                 }
 
                 if ($skip === true || self::getHelp()->getApi->getStatus() == 200) {
+                    /* TODO setPhone */
                     $fNameP = self::getHelp()->getSessionName . 'setPhone';
                     if (self::getHelp()->getSession->{"get".$fNameP}()) {
                         self::getHelp()->getSession->{"uns".$fNameP}();
@@ -126,6 +127,7 @@ class setEmail extends Action
             }
             self::getHelp()->getSession->{"uns".$tApi}();
         } else {
+            /* TODO setPhone */
             $fNameP = self::getHelp()->getSessionName . 'setPhone';
 
             if (self::getHelp()->getSession->{"get".$fNameP}()) {

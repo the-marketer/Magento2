@@ -75,8 +75,7 @@ importScripts("https://t.themarketer.com/firebase.js");';
         "addToWishlist"=> [false, "__sm__add_to_wishlist"],
         "removeFromWishlist"=> [false, "__sm__remove_from_wishlist"],
         "saveOrder"=> [true, "__sm__order"],
-        "setEmail"=> [true, "__sm__set_email"],
-        "setPhone"=> [false, "__sm__set_phone"]
+        "setEmail"=> [true, "__sm__set_email"]
     ];
 
     private static $scopeCode = null;   // 'default';

@@ -250,18 +250,6 @@ class Events implements ObserverInterface
             }
             
             $this->EmailSet($object);
-
-            if ($object->getDefaultShipping()) {
-                self::$eventName = "setPhone";
-
-                $customerAddress = self::getHelp()->getCustomerAddress->load($object->getDefaultShipping());
-
-                self::$eventData = [
-                    'phone' => self::getHelp()->getFunc->validateTelephone($customerAddress->getTelephone())
-                ];
-
-                self::MktrSessionSet();
-            }
         }
     }
     /** @noinspection PhpUnused */
@@ -272,17 +260,6 @@ class Events implements ObserverInterface
         
         $customer = self::$observer->getCustomer();
         $this->EmailSet($customer);
-
-        if ($customer->getDefaultShipping()) {
-            self::$eventName = "setPhone";
-            $address = self::getHelp()->getCustomerAddress->load($customer->getDefaultShipping());
-
-            self::$eventData = [
-                'phone' => self::getHelp()->getFunc->validateTelephone($address->getTelephone())
-            ];
-
-            self::MktrSessionSet();
-        }
     }
     /** @noinspection PhpUnused */
     public function RegisterOrLogIn()
@@ -290,17 +267,6 @@ class Events implements ObserverInterface
         $customer = self::$observer->getCustomer();
 
         $this->EmailSet($customer);
-
-        if ($customer->getDefaultShipping()) {
-            self::$eventName = "setPhone";
-            $address = self::getHelp()->getCustomerAddress->load($customer->getDefaultShipping());
-
-            self::$eventData = [
-                'phone' => self::getHelp()->getFunc->validateTelephone($address->getTelephone())
-            ];
-
-            self::MktrSessionSet();
-        }
     }
 
     public function EmailSet($object)
@@ -318,6 +284,12 @@ class Events implements ObserverInterface
         if ($lName) {
             $emailData['lastname'] = $lName;
         }
+
+        if ($object->getDefaultShipping()) {
+            $customerAddress = self::getHelp()->getCustomerAddress->load($object->getDefaultShipping());
+            $emailData['phone'] = self::getHelp()->getFunc->validateTelephone($customerAddress->getTelephone());
+        }
+        
         self::$eventName = "setEmail";
 
         self::$eventData = $emailData;

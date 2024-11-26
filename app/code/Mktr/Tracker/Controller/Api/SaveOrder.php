@@ -72,11 +72,6 @@ class SaveOrder extends Action
                         )
                     );
                 }
-
-                if (!empty($sOrder["phone"])) {
-                    $fNameS = "set".self::getHelp()->getSessionName.'setPhone';
-                    self::getHelp()->getSession->{$fNameS}([ 'phone' => $sOrder["phone"] ]);
-                }
             }
             if (self::getHelp()->getApi->getStatus() == 200) {
                 self::getHelp()->getSession->{"uns".$fName}();

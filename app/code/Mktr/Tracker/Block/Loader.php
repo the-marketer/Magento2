@@ -136,7 +136,10 @@ class Loader extends Template
             });';
         }
         
-        $lines[] = 'window.MktrDebug = function () { if (typeof dataLayer != undefined) { for (let i of dataLayer) { console.log("Mktr","Google",i); } } };';
+        $lines[] = 'window.mktr = window.mktr || {};';
+        $lines[] = 'window.dataLayer = window.dataLayer || [];';
+        $lines[] = 'window.mktr.MKTR_VERSION = "1.2.1";';
+        $lines[] = 'window.mktr.debug = function () { if (typeof dataLayer != undefined) { for (let i of dataLayer) { console.log("Mktr","Google",i); } } };';
 
         // $lines[] = 'console.log("Mktr","ActionName","'.self::actionName().'");';
 
