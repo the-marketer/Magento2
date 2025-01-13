@@ -33,7 +33,9 @@ class Events implements ObserverInterface
         "customer_login" => "RegisterOrLogIn",
         /* "review_controller_product_init_after" => "Review", */
         "admin_system_config_changed_section_mktr_tracker" => "SaveButton",
-        "sales_order_save_after" => "UpdateOrder"
+        "sales_order_save_after" => "UpdateOrder",
+        /* TODO CARD PAY 'sales_order_save_commit_after' */
+        "sales_order_place_after" => "saveOrder"
     ];
 
     private static $ins = [

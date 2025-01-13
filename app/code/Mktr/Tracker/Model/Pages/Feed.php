@@ -168,6 +168,11 @@ class Feed
         $salePrice = empty((float) $finalPrice) ? $price : $finalPrice;
 
         $price = empty((float) $price) ? $finalPrice : $price;
+        $taxID = $product->getTaxClassId();
+        if ($taxID) {
+            $price = self::getHelp()->getTax->getTaxPrice($product, $price, true);
+            $salePrice = $salePrice > 0 ? self::getHelp()->getTax->getTaxPrice($product, $salePrice, true) : $price;
+        }
 
         $media_gallery = [
             'image'=>[]
@@ -255,6 +260,11 @@ class Feed
                     } elseif ($p->isInStock()) { $stock = 1;
                     } else { $stock = 0; }
 
+                    if ($taxID) {
+                        $vPrice = self::getHelp()->getTax->getTaxPrice($p, $vPrice, true);
+                        $vSalePrice = $vSalePrice > 0 ? self::getHelp()->getTax->getTaxPrice($p, $vSalePrice, true) : $vPrice;
+                    }
+                    
                     $v = [
                         'id' => $p->getId(),
                         'sku' => $p->getSku(),

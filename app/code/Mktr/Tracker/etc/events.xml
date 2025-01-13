@@ -17,4 +17,7 @@
     <event name="sales_order_save_after">
         <observer name="mktr_tracker_sales_order_save_after" instance="Mktr\Tracker\Observer\Events"/>
     </event>
+    <event name="sales_order_place_after">
+        <observer name="mktr_tracker_sales_order_place_after" instance="Mktr\Tracker\Observer\Events"/>
+    </event>
 </config>
