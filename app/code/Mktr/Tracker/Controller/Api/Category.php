@@ -95,7 +95,7 @@ class Category extends Action
 
         $newList = [
             "name" => $category->getName(),
-            "url" => self::$url. $category->getUrlPath().'.html',
+            "url" => $category->getUrl(),
             'id'=> $category->getId(),
             "hierarchy" => self::hierarchy($category),
             "image_url" => $category->getImageUrl()
