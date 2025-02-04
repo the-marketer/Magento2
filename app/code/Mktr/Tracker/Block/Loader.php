@@ -78,8 +78,8 @@ class Loader extends Template
         if (self::getHelp()->getConfig->getStatus() === 0 || empty(self::getHelp()->getConfig->getKey())) {
             return '';
         }
-
-        $lines = [ 'window.mktr = window.mktr || { pending: [], retryCount: 0, version: "1.2.0.8" };' ];
+        
+        $lines = [ 'window.mktr = window.mktr || { pending: [], retryCount: 0, version: "1.2.1.1" };', 'window.dataLayer = window.dataLayer || [];'];
         $lines[] = 'window.mktr.debug = function () { if (typeof dataLayer != "undefined") { for (let i of dataLayer) { console.log("Mktr", "Google", i); } } };';
         $lines[] = 'window.mktr.eventPush = function (data = {}) {
             if (typeof dataLayer != "undefined") { dataLayer.push(data); } else {
@@ -135,11 +135,8 @@ class Loader extends Template
                 if (closestElem1 || closestElem2) { setTimeout(window.mktr.loadEvents, 3000); }
             });';
         }
-        
-        $lines[] = 'window.mktr = window.mktr || {};';
-        $lines[] = 'window.dataLayer = window.dataLayer || [];';
-        $lines[] = 'window.mktr.MKTR_VERSION = "1.2.1";';
-        $lines[] = 'window.mktr.debug = function () { if (typeof dataLayer != undefined) { for (let i of dataLayer) { console.log("Mktr","Google",i); } } };';
+
+        // $lines[] = 'window.mktr.debug = function () { if (typeof dataLayer != undefined) { for (let i of dataLayer) { console.log("Mktr","Google",i); } } };';
 
         // $lines[] = 'console.log("Mktr","ActionName","'.self::actionName().'");';
 
