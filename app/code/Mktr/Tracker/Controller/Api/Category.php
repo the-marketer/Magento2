@@ -24,6 +24,8 @@ class Category extends Action
     private static $error = null;
     private static $fileName = "categories";
     private static $secondName = "category";
+    private static $params = [];
+    private static $rmExt = false;
 
     private static $data;
     private static $url;
@@ -57,6 +59,10 @@ class Category extends Action
         ]);
 
         if ($this->status()) {
+            self::$params = self::getHelp()->getRequest->getParams();
+            if (isset(self::$params['rmExt']) && self::$params['rmExt'] == 1) {
+                self::$rmExt = true;
+            }
             return self::getHelp()->getFunc->readOrWrite(self::$fileName, self::$secondName, $this);
         }
 
@@ -95,7 +101,7 @@ class Category extends Action
 
         $newList = [
             "name" => $category->getName(),
-            "url" => self::$url. $category->getUrlPath().'.html',
+            "url" => self::$rmExt === true ? self::$url. $category->getUrlPath() : self::$url. $category->getUrlPath().'.html',
             'id'=> $category->getId(),
             "hierarchy" => self::hierarchy($category),
             "image_url" => $category->getImageUrl()
