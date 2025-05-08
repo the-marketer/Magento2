@@ -96,7 +96,7 @@ class DiscountCode extends \Magento\Framework\DataObject implements Codegenerato
             if (self::$sIds === null) {
                 $nIds = [];
                 foreach (self::getHelp()->getStoreRepo->getList() as $website) {
-                    if ($website->getCode() !== 'admin') {
+                    if ($website->getCode() !== 'admin' && !in_array($website->getWebsiteId(), $nIds)) {
                         $nIds[] = $website->getWebsiteId();
                     }
                 }
@@ -105,7 +105,9 @@ class DiscountCode extends \Magento\Framework\DataObject implements Codegenerato
             if (self::$cGroups === null) {
                 $nGroups = [];
                 foreach (self::getHelp()->getCustomerGroup->getCollection()->toOptionHash() as $groupId => $n) {
-                    $nGroups[] = $groupId;
+                    if (!in_array($groupId, $nGroups)) {
+                        $nGroups[] = $groupId;
+                    }
                 }
                 self::$cGroups = $nGroups;
             }
