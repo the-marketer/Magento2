@@ -47,6 +47,7 @@ importScripts("https://t.themarketer.com/firebase.js");';
         'default_stock' => 'mktr_tracker/tracker/default_stock',
         'allow_export' => 'mktr_tracker/tracker/allow_export',
         'selectors' => 'mktr_tracker/tracker/selectors',
+        /* 'discounted_products' => 'mktr_tracker/tracker/discounted_products', */
         'brand' => 'mktr_tracker/attribute/brand',
         'color' => 'mktr_tracker/attribute/color',
         'size' => 'mktr_tracker/attribute/size'
@@ -62,6 +63,7 @@ importScripts("https://t.themarketer.com/firebase.js");';
         'default_stock' => null,
         'allow_export' => null,
         'selectors' => null,
+        /* 'discounted_products' => null, */
         'brand' => null,
         'color' => null,
         'size' => null
@@ -89,6 +91,28 @@ importScripts("https://t.themarketer.com/firebase.js");';
         0 => "fixedValue",
         1 => "percentage",
         2 => "freeShipping"
+    ];
+
+    private static $groups = [
+        'getStatus' => 'status',
+        'getKey' => 'tracking_key',
+        'getRestKey' => 'rest_key',
+        'getOptIn' => 'opt_in',
+        'getPushStatus' => 'push_status',
+        'getDefaultStock' => 'default_stock',
+        'getAllowExport' => 'allow_export',
+        'getCustomerId' => 'customer_id',
+        'getBrandAttribute' => 'brand',
+        'getColorAttribute' => 'color',
+        'getSizeAttribute' => 'size',
+        'getCronFeed' => 'cron_feed',
+        'getSelectors' => 'selectors',
+        'getUpdateFeed' => 'update_feed',
+        'getCronReview' => 'cron_review',
+        'getCronSubscribe' => 'cron_subscribe',
+        'getUpdateReview' => 'update_review',
+        'getUpdateSubscribe' => 'update_subscribe',
+        // 'getAddToDiscounts' => 'discounted_products'
     ];
 
     /** @noinspection PhpUnused */
@@ -296,4 +320,11 @@ importScripts("https://t.themarketer.com/firebase.js");';
     {
         return self::getValue('update_subscribe');
     }
+    /** @noinspection PhpUnused */
+    /*
+    public static function getDiscountedProducts()
+    {
+        return self::getValue('discounted_products');
+    }
+    */
 }

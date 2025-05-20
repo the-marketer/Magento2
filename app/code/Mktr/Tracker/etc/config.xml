@@ -29,6 +29,7 @@
                 <default_stock>0</default_stock>
                 <allow_export>0</allow_export>
                 <selectors/>
+                <!-- <discounted_products>1</discounted_products> -->
             </tracker>
             <attribute>
                 <brand>manufacturer</brand>

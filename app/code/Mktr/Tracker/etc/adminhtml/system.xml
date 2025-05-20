@@ -125,6 +125,13 @@
                     <label>Trigger Selectors</label>
                     <comment><![CDATA[Buttons that will trigger events Like AddToCart]]></comment>
                 </field>
+                <!--
+                <field id="discounted_products" translate="label" type="select" sortOrder="46"
+                       showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Apply promo codes to discounted items?</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                </field>
+                -->
             </group>
             <group id="attribute" translate="label" type="text" sortOrder="11"
                    showInDefault="1" showInWebsite="1" showInStore="1">

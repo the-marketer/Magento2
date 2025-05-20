@@ -31,6 +31,9 @@ class DiscountCode extends \Magento\Framework\DataObject implements Codegenerato
         'Rule' => null,
         'Help' => null
     ];
+    
+    public static $discounted_products = true;
+
     const PREFIX = 'MKTR-';
     const NAME = "MKTR-%s-%s";
     const DESCRIPTION = "Discount Code Generated through TheMarketer API";
@@ -152,6 +155,27 @@ class DiscountCode extends \Magento\Framework\DataObject implements Codegenerato
 
         self::$NewCode[$name]->acquireCoupon(true);
         self::$NewCode[$name]->setCouponType(Rule::COUPON_TYPE_SPECIFIC);
+
+        if (self::$discounted_products) {
+            $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
+
+            $Condition = $objectManager->create('Magento\SalesRule\Model\Rule\Condition\Address')
+            ->setType('Magento\SalesRule\Model\Rule\Condition\Address')
+            ->setId('1--1')
+            ->setPrefix('conditions')
+            ->setAttribute('total_qty')
+            ->setOperator('>')
+            ->setValue('6')
+            ->setIsValueParsed(false);
+
+            $conditionData = $objectManager->create('Magento\SalesRule\Model\Rule\Condition\Combine')
+            ->setType('Magento\SalesRule\Model\Rule\Condition\Combine')
+            ->setRule(self::$NewCode[$name])
+            ->setValue(true)->setData('conditions', [ $Condition ]);
+            
+            self::$NewCode[$name]->setConditions($conditionData);
+        }
+        
         self::$NewCode[$name]->save();
         return self::$NewCode[$name];
     }
