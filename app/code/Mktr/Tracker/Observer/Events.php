@@ -13,6 +13,13 @@ namespace Mktr\Tracker\Observer;
 use Magento\Framework\Event\ObserverInterface;
 use Mktr\Tracker\Helper\Data;
 use Magento\Newsletter\Model\Subscriber;
+use Magento\Framework\App\RequestInterface;
+use Magento\Framework\App\ResponseInterface;
+use Magento\Framework\UrlInterface;
+use Magento\Checkout\Model\Session as CheckoutSession;
+use Magento\Framework\Message\ManagerInterface;
+use Magento\Catalog\Model\ProductFactory;
+use Magento\Checkout\Model\Cart;
 
 class Events implements ObserverInterface
 {
@@ -20,6 +27,13 @@ class Events implements ObserverInterface
     private static $eventName = null;
     private static $eventAction = null;
     private static $eventData = [];
+    private $request;
+    private $response;
+    private $checkoutSession;
+    private $messageManager;
+    private $url;
+    private $productFactory;
+    private $cart;
 
     const observerEvents = [
         "checkout_cart_product_add_after" => "addToCart",
@@ -35,7 +49,9 @@ class Events implements ObserverInterface
         "admin_system_config_changed_section_mktr_tracker" => "SaveButton",
         "sales_order_save_after" => "UpdateOrder",
         /* TODO CARD PAY 'sales_order_save_commit_after' */
-        "sales_order_place_after" => "saveOrder"
+        "sales_order_place_after" => "saveOrder",
+        "controller_action_predispatch_catalog_product_view" => "addToCartAndCheckout",
+        "controller_action_postdispatch_checkout_cart_index" => "applyDiscountCode"
     ];
 
     private static $ins = [
@@ -52,9 +68,24 @@ class Events implements ObserverInterface
         return self::$ins["Help"];
     }
 
-    public function __construct(Data $help)
-    {
+    public function __construct(
+        Data $help,
+        RequestInterface $request,
+        ResponseInterface $response,
+        CheckoutSession $checkoutSession,
+        ManagerInterface $messageManager,
+        UrlInterface $url,
+        ProductFactory $productFactory,
+        Cart $cart
+    ) {
         self::$ins["Help"] = $help;
+        $this->request = $request;
+        $this->response = $response;
+        $this->checkoutSession = $checkoutSession;
+        $this->messageManager = $messageManager;
+        $this->url = $url;
+        $this->productFactory = $productFactory;
+        $this->cart = $cart;
     }
 
     /** @noinspection PhpUnused */
@@ -325,6 +356,69 @@ class Events implements ObserverInterface
         ];
 
         self::getHelp()->getApi->send("update_order_status", $send, false);
+    }
+
+    /** @noinspection PhpUnused */
+    public function addToCartAndCheckout()
+    {
+        $addToCart = $this->request->getParam('mktrAddCart', 0);
+        $productId = $this->request->getParam('mktrPID', null);
+
+        if ($addToCart != 1 || empty($productId)) {
+            return;
+        }
+
+        $redirectUrl = $this->url->getUrl('checkout/cart');
+        $product = $this->productFactory->create()->load($productId);
+
+        if ($product && $product->getId()) {
+            try {
+                $this->cart->addProduct($product, ['qty' => 1]);
+                $this->cart->save();
+                $this->checkoutSession->setCartWasUpdated(true);
+            } catch (\Exception $e) {
+                $this->messageManager->addErrorMessage($e->getMessage());
+            }
+        } else {
+            $this->messageManager->addErrorMessage(__('Invalid product.'));
+        }
+
+        $this->response->setRedirect($redirectUrl);
+    }
+
+    /** @noinspection PhpUnused */
+    public function applyDiscountCode()
+    {
+        $redirectUrl = $this->url->getUrl('checkout/cart');
+
+        try {
+            $addDiscount = (int) $this->request->getParam('mktrAddDiscount', 0);
+            $code = trim((string) $this->request->getParam('code', ''));
+
+            if ($addDiscount !== 1 || $code === '') {
+                return;
+            }
+
+            $quote = $this->checkoutSession->getQuote();
+
+            if (!$quote->hasItems()) {
+                $this->messageManager->addErrorMessage(__('Your cart is empty. Please add products to your cart before applying a discount code.'));
+            } elseif ($quote->getCouponCode()) {
+                $this->messageManager->addErrorMessage(__('A coupon is already applied. Please remove it before applying a new one.'));
+            } else {
+                $quote->setCouponCode($code)->collectTotals()->save();
+
+                if ($quote->getCouponCode() === $code) {
+                    $this->messageManager->addSuccessMessage(__('The discount code has been applied successfully.'));
+                } else {
+                    $this->messageManager->addErrorMessage(__('Invalid discount code.'));
+                }
+            }
+        } catch (\Exception $e) {
+            $this->messageManager->addErrorMessage($e->getMessage());
+        }
+
+        $this->response->setRedirect($redirectUrl);
     }
 
     /** @noinspection PhpReturnValueOfMethodIsNeverUsedInspection */
