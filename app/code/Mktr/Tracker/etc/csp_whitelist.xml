@@ -17,6 +17,9 @@
             <values>
                 <value id="themarketer" type="host">t.themarketer.com</value>
                 <value id="themarketercdn" type="host">cdn1.themarketer.com</value>
+                <value id="themarketerc1" type="host">c1api.themarketer.com</value>
+                <value id="themarketerc2" type="host">c2api.themarketer.com</value>
+                <value id="themarketerc3" type="host">c3api.themarketer.com</value>
             </values>
         </policy>
         <policy id="img-src">
