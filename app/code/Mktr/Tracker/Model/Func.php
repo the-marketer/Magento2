@@ -264,6 +264,18 @@ class Func
                                     $error = "Incorrect REST API Key ". self::$params[$k];
                                 }
                                 break;
+                            case "KeyAuth":
+                                $authHeader = self::getHelp()->getRequest->getHeader('Authorization');
+                                $token = null;
+
+                                if ($authHeader && preg_match('/Bearer\s+(\S+)/', $authHeader, $matches)) {
+                                    $token = $matches[1];
+                                }
+
+                                if (!$token || $token !== self::getConfig()->getRestKey()) {
+                                    $error = "Incorrect Authorization";
+                                }
+                                break;
                             case "RuleCheck":
                                 if (isset(self::$params[$k]) && !isset(self::getConfig()->getDiscountRules()[self::$params[$k]])) {
                                     $error = "Incorrect Rule Type ". self::$params[$k];

@@ -57,7 +57,7 @@ class CodeGenerator extends Action
         }
         
         self::$error =  self::getHelp()->getFunc->isParamValid([
-            'key' => 'Required|Key',
+            'key' => 'KeyAuth',
             'expiration_date' => 'DateCheck',
             'value' => 'Required|Int',
             'type' => "Required|RuleCheck"
