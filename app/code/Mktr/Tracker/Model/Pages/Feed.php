@@ -155,6 +155,7 @@ class Feed
         // if($product->getId()!=84) { return false; }
         // $product->setStoreId(self::getHelp()->getFunc->getStoreId());
         $listCategory = self::getHelp()->getManager->buildMultiCategory($product->getCategoryIds());
+        // if($product->getId() == 93) { var_dump($product->getCategoryIds(), $listCategory); die(); }
 
         // $price = $product->getPrice();
         $price = $product->getPriceInfo()->getPrice('regular_price')->getValue();

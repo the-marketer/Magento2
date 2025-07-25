@@ -232,10 +232,15 @@ class Manager
             if ($categoryRegistry->getLevel() == 2) {
                 self::$bMultiCat[$categoryRegistry->getPath()][] = $categoryRegistry->getName();
             } else {
+                $add = true;
                 foreach (self::$bMultiCat as $key => $value) {
                     if (strpos($categoryRegistry->getPath(), $key) !== false) {
                         self::$bMultiCat[$key][] = $categoryRegistry->getName();
+                        $add = false;
                     }
+                }
+                if ($add) {
+                    self::$bMultiCat[$categoryRegistry->getPath()][] = $categoryRegistry->getName();
                 }
             }
         }
