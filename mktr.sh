@@ -1,7 +1,7 @@
 #!/bin/sh
 
 if [ -z "$2" ]; then
-  usePhp="php"
+  usePhp="php -d memory_limit=-1"
 else
   usePhp=$2
 fi

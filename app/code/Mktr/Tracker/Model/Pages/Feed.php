@@ -18,13 +18,16 @@ class Feed
 {
     // private static $cons = null;
     private static $ins = [
-        "Help" => null
+        "Help" => null,
+        "MSI" => null
     ];
 
     private static $error = null;
     private static $params = null;
     private static $fileName = "products";
     private static $secondName = "product";
+
+    private static $MSI = null;
 
     private static $data;
     private static $attr;
@@ -47,6 +50,15 @@ class Feed
             self::$ins["Help"] = \Magento\Framework\App\ObjectManager::getInstance()->get('\Mktr\Tracker\Helper\Data');
         }
         return self::$ins["Help"];
+    }
+    
+    /** TODO: Magento 2 */
+    public static function getMSI()
+    {
+        if (self::$ins["MSI"] == null) {
+            self::$ins["MSI"] = \Magento\Framework\App\ObjectManager::getInstance()->get('\Magento\InventoryApi\Api\GetSourceItemsBySkuInterface');
+        }
+        return self::$ins["MSI"];
     }
 
     private static function status()
@@ -150,6 +162,17 @@ class Feed
         return $or;
     }
 
+    public static function checkMSI () {
+        if (self::$MSI === null) {
+            if (\Magento\Framework\App\ObjectManager::getInstance()->get("\Magento\Framework\Module\Manager")->isEnabled('Magento_Inventory')) {
+                self::$MSI = true;
+            } else {
+                self::$MSI = false;
+            }
+        }
+        return self::$MSI;
+    }
+
     public static function buildProduct($product)
     {
         // if($product->getId()!=84) { return false; }
@@ -165,7 +188,6 @@ class Feed
         if (empty((float) $finalPrice) && empty((float) $price)) {
             return false;
         }
-
         $salePrice = empty((float) $finalPrice) ? $price : $finalPrice;
 
         $price = empty((float) $price) ? $finalPrice : $price;
@@ -195,7 +217,17 @@ class Feed
         ];
 
         /** TODO: Magento 2 */
-        $MasterQty = (int) (self::getHelp()->getStockRepo->getStockItem($product->getId())->getQty() ?? 0);
+        if (self::checkMSI()) {
+            $MasterQty = 0;
+            foreach (self::getMSI()->execute($product->getSku()) as $item) {
+                /* $item->getStatus(); */
+                if ($item->getQuantity() > 0) {
+                    $MasterQty = $MasterQty + $item->getQuantity();
+                }
+            }
+        } else {
+            $MasterQty = (int) (self::getHelp()->getStockRepo->getStockItem($product->getId())->getQty() ?? 0);
+        }
 
         if ($product->getTypeId() == 'configurable') {
             // $product->getTypeInstance()->getUsedProducts($product);
@@ -252,9 +284,19 @@ class Feed
                     var_dump($p->getData('colordd'), $p->getAttributeText('color'), self::$attr['color'], self::$attr['size'], $attribute, $ls);die();
                     */
                     /** TODO: Magento 2 */
-                    $qty = self::getHelp()->getStockRepo->getStockItem($p->getId())->getQty();
-
-                    $MasterQty += (int) $qty;
+                    if (self::checkMSI()) {
+                        $qty = 0;
+                        foreach (self::getMSI()->execute($p->getSku()) as $item) {
+                            /* $item->getStatus(); */
+                            if ($item->getQuantity() > 0) {
+                                $qty = $qty + $item->getQuantity();
+                            }
+                        }
+                    } else {
+                        $qty = (int) (self::getHelp()->getStockRepo->getStockItem($p->getId())->getQty() ?? 0);
+                    }
+                    
+                    $MasterQty = $MasterQty + (int) $qty;
                     /** @noinspection DuplicatedCode */
                     if ($qty < 0) { $stock = self::getHelp()->getConfig->getDefaultStock();
                     } elseif ($p->isInStock() && $qty == 0) { $stock = 2;
