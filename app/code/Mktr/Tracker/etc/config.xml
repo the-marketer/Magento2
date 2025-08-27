@@ -28,6 +28,7 @@
                 <push_status>0</push_status>
                 <default_stock>0</default_stock>
                 <allow_export>0</allow_export>
+                <stock_source>all</stock_source>
                 <selectors/>
             </tracker>
             <attribute>

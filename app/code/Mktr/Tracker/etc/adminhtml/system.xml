@@ -104,8 +104,18 @@
                     <label>Double opt-in setting</label>
                     <source_model>Mktr\Tracker\Model\Option\Provider</source_model>
                 </field>
-                <field id="push_status" translate="label" type="select" sortOrder="41"
-                       showInDefault="1" showInWebsite="1" showInStore="1">
+                <field id="stock_source" translate="label" type="select" sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Stock Source</label>
+                    <source_model>Mktr\Tracker\Model\Option\StockSource</source_model>
+                    <depends>
+                        <field id="*/*/has_multiple_sources">1</field>
+                    </depends>
+                    <comment><![CDATA[Select Stock Source MSI, Default: All]]></comment>
+                </field>
+                <field id="has_multiple_sources" type="hidden" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <backend_model>Mktr\Tracker\Model\Option\HasMultipleSources</backend_model>
+                </field>
+                <field id="push_status" translate="label" type="select" sortOrder="41" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Push Notification</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                 </field>

@@ -46,6 +46,7 @@ importScripts("https://t.themarketer.com/firebase.js");';
         'push_status' => 'mktr_tracker/tracker/push_status',
         'default_stock' => 'mktr_tracker/tracker/default_stock',
         'allow_export' => 'mktr_tracker/tracker/allow_export',
+        'stock_source' => 'mktr_tracker/tracker/stock_source',
         'selectors' => 'mktr_tracker/tracker/selectors',
         'brand' => 'mktr_tracker/attribute/brand',
         'color' => 'mktr_tracker/attribute/color',
@@ -64,7 +65,8 @@ importScripts("https://t.themarketer.com/firebase.js");';
         'selectors' => null,
         'brand' => null,
         'color' => null,
-        'size' => null
+        'size' => null,
+        'stock_source' => 'all'
     ];
 
     private static $configValues = [];
@@ -295,5 +297,10 @@ importScripts("https://t.themarketer.com/firebase.js");';
     public static function getUpdateSubscribe()
     {
         return self::getValue('update_subscribe');
+    }
+    /** @noinspection PhpUnused */
+    public static function getStockSource()
+    {
+        return self::getValue('stock_source');
     }
 }

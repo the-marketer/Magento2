@@ -29,6 +29,8 @@ class Feed
 
     private static $MSI = null;
 
+    private static $SourceMSI = null;
+
     private static $data;
     private static $attr;
     private static $imageLink = null;
@@ -147,7 +149,6 @@ class Feed
             $pages = $stop ? self::$params['page'] : self::$data['products']->getLastPageNumber();
             do {
                 self::$data['products']->setCurPage(self::$params['page'])->load();
-    
                 foreach (self::$data['products'] as $product) {
                     $oo = self::getProductById($product->getId());
                     if ($oo !== false) {
@@ -173,6 +174,20 @@ class Feed
         return self::$MSI;
     }
 
+    public static function AddQTY($item = null, $MasterQty) {
+        if (self::$SourceMSI === null) {
+           self::$SourceMSI = self::getHelp()->getConfig->getStockSource();
+        }
+        if ($item !== null) {
+            if (self::$SourceMSI === 'all' || $item->getSourceCode() === self::$SourceMSI) {
+                if ($item->getQuantity() > 0) {
+                    $MasterQty = $MasterQty + $item->getQuantity();
+                }
+            }
+        }
+        return $MasterQty;
+    }
+
     public static function buildProduct($product)
     {
         // if($product->getId()!=84) { return false; }
@@ -180,6 +195,8 @@ class Feed
         $listCategory = self::getHelp()->getManager->buildMultiCategory($product->getCategoryIds());
         // if($product->getId() == 93) { var_dump($product->getCategoryIds(), $listCategory); die(); }
 
+
+                    // var_dump('Alex', $product->getSku());
         // $price = $product->getPrice();
         $price = $product->getPriceInfo()->getPrice('regular_price')->getValue();
         // $finalPrice = $product->getFinalPrice();
@@ -215,15 +232,15 @@ class Feed
         $variations = [
             'variation' => []
         ];
-
         /** TODO: Magento 2 */
         if (self::checkMSI()) {
             $MasterQty = 0;
+            /*
+            $item->getStatus();
+            $item->getSourceCode();
+            */
             foreach (self::getMSI()->execute($product->getSku()) as $item) {
-                /* $item->getStatus(); */
-                if ($item->getQuantity() > 0) {
-                    $MasterQty = $MasterQty + $item->getQuantity();
-                }
+                $MasterQty = self::AddQTY($item, $MasterQty);
             }
         } else {
             $MasterQty = (int) (self::getHelp()->getStockRepo->getStockItem($product->getId())->getQty() ?? 0);
@@ -231,7 +248,6 @@ class Feed
 
         if ($product->getTypeId() == 'configurable') {
             // $product->getTypeInstance()->getUsedProducts($product);
-
             $variants = $product->getTypeInstance()->getUsedProducts($product);
             foreach ($variants as $p) {
 
@@ -287,16 +303,14 @@ class Feed
                     if (self::checkMSI()) {
                         $qty = 0;
                         foreach (self::getMSI()->execute($p->getSku()) as $item) {
-                            /* $item->getStatus(); */
-                            if ($item->getQuantity() > 0) {
-                                $qty = $qty + $item->getQuantity();
-                            }
+                            $qty = self::AddQTY($item, $qty);
                         }
                     } else {
                         $qty = (int) (self::getHelp()->getStockRepo->getStockItem($p->getId())->getQty() ?? 0);
                     }
                     
                     $MasterQty = $MasterQty + (int) $qty;
+
                     /** @noinspection DuplicatedCode */
                     if ($qty < 0) { $stock = self::getHelp()->getConfig->getDefaultStock();
                     } elseif ($p->isInStock() && $qty == 0) { $stock = 2;
