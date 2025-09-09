@@ -174,7 +174,7 @@ class Feed
         return self::$MSI;
     }
 
-    public static function AddQTY($item = null, $MasterQty) {
+    public static function AddQTY($item = null, $MasterQty = 0) {
         if (self::$SourceMSI === null) {
            self::$SourceMSI = self::getHelp()->getConfig->getStockSource();
         }
