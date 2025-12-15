@@ -381,6 +381,9 @@ class Feed
             $desk = '';
         }
         
+        $CreatedAt = $product->getCreatedAt();
+        $CreatedAt = ($CreatedAt === null || $CreatedAt === '0000-00-00 00:00:00') ? '2000-01-01 00:00:00' : $CreatedAt;
+       
         $oo = [
             'id' => $product->getId(),
             'sku' => $product->getSku(),
@@ -401,7 +404,7 @@ class Feed
             'stock' => $MasterQty,
             'media_gallery' => $media_gallery,
             'variations' => $variations,
-            'created_at' => self::getHelp()->getFunc->correctDate($product->getCreatedAt()),
+            'created_at' => self::getHelp()->getFunc->correctDate($CreatedAt),
         ];
 
         foreach ($oo as $key => $val) {
