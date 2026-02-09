@@ -34,6 +34,7 @@ class Events implements ObserverInterface
     private $url;
     private $productFactory;
     private $cart;
+    const sendApi = false;
 
     const observerEvents = [
         "checkout_cart_product_add_after" => "addToCart",
@@ -215,6 +216,12 @@ class Events implements ObserverInterface
     public function saveOrder()
     {
         $saveOrder = self::$observer->getOrder();
+        
+        if ($saveOrder === null) {
+            $orderIds = self::$observer->getEvent()->getOrderIds();
+            $saveOrder = self::getHelp()->getOrderRepo->load($orderIds[0]);
+        }
+        
         if ($saveOrder !== null) {
             if (self::getHelp()->getMageVersion > "1.4.2.0") {
                 $billingAddress = $saveOrder->getbillingAddress();
@@ -254,6 +261,11 @@ class Events implements ObserverInterface
                 "total_value" => self::getHelp()->getFunc->digit2($saveOrder->getGrandTotal()),
                 "products" => $products
             ];
+
+            if (self::sendApi) {
+                self::getHelp()->getApi->send("save_order", self::$eventData);
+            }
+            
             self::MktrSessionSet();
         }
     }
