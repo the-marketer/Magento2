@@ -59,72 +59,88 @@ class Subscribes
         return self::$ins["Subscriber"];
     }
 
+    private const DEFAULT_INTERVAL_HOURS = 24;
+
+    /**
+     * @return array
+     */
     public function execute()
     {
-        $tt = time();
+        list($dateFrom, $dateTo) = $this->resolveDateRange();
 
-        $f = self::getHelp()->getRequest->getParam("date_from") ?? null;
-        $t = self::getHelp()->getRequest->getParam("date_to") ?? null;
+        $emails = $this->fetchUnsubscribedEmails($dateFrom, $dateTo);
 
-        if ($f === null || $t === null) { $tt = time(); }
-        
-        if ($f === null) {
-            $f = (strtotime('00:00:00', $tt) - 86400);
-        } else {
-            $f = strtotime($f. '00:00:00');
+        if ($emails === null) {
+            return ['status' => 'N/A'];
         }
 
-        if ($t === null) {
-            $t = strtotime('23:59:59', $tt);
-        } else {
-            $t = strtotime($t.' 23:59:59');
-        }
-        
-        $o = self::getHelp()->getApi->send("unsubscribed_emails", [ 'date_from' => $f, 'date_to' => $t ], false);
+        $this->processUnsubscribes($emails);
 
-        $r = json_decode($o->getContent());
+        return ['status' => $emails];
+    }
 
-        if ($r !== null) {
-            $restKey = self::getHelp()->getConfig->getRestKey();
-            // $subStore = self::getHelp()->getData->subStore;
-            
-            /*
-            if (!isset($subStore[$restKey])) {
-                $subStore[$restKey] = [];
-            }
-            
-            foreach ($subStore[$restKey] as $k => $v) {
-                if (($tt - $v) > 86400) {
-                    unset($subStore[$restKey][$k]);
-                }
-            }
-            */
-            foreach ($r as $email) {
-                $e = self::getSubscriber()->loadByEmail($email);
-                $statusSub = $e->getStatus();
-                if (
-                    $statusSub !== null &&
-                    $statusSub == \Magento\Newsletter\Model\Subscriber::STATUS_SUBSCRIBED &&
-                    $statusSub != \Magento\Newsletter\Model\Subscriber::STATUS_UNSUBSCRIBED
-                ) {
-                    // $subStore[$restKey][$email] = $tt;
-                    // $sub = $e->setStatus(\Magento\Newsletter\Model\Subscriber::STATUS_UNSUBSCRIBED);
-                    if ($e->getCode() !== null) {
-                        $sub = $e->setCheckCode($e->getCode())->unsubscribe();
-                    } else {
-                        $sub = $e->unsubscribe();
-                    }
-                    $e->save();
-                }
-            }
-    
-            // self::getHelp()->getData->subStore = $subStore;
-            // self::getHelp()->getData->save();
-            $xml = ['status' => $r];
-        } else {
-            $xml = ['status' => 'N\A'];
+    /**
+     * @return array
+     */
+    private function resolveDateRange()
+    {
+        $paramDateFrom = self::getHelp()->getRequest->getParam("date_from");
+        $paramDateTo = self::getHelp()->getRequest->getParam("date_to");
+
+        if ($paramDateFrom !== null && $paramDateTo !== null) {
+            return [
+                strtotime($paramDateFrom . ' 00:00:00'),
+                strtotime($paramDateTo . ' 23:59:59')
+            ];
         }
 
-        return $xml;
+        $now = time();
+        $intervalHours = (int) self::getHelp()->getConfig->getUpdateSubscribe() ?: self::DEFAULT_INTERVAL_HOURS;
+
+        return [
+            $now - ($intervalHours * 3600),
+            $now
+        ];
+    }
+
+    /**
+     * @param int $dateFrom
+     * @param int $dateTo
+     * @return array|null
+     */
+    private function fetchUnsubscribedEmails($dateFrom, $dateTo)
+    {
+        $response = self::getHelp()->getApi->send(
+            "unsubscribed_emails",
+            ['date_from' => $dateFrom, 'date_to' => $dateTo],
+            false
+        );
+
+        return json_decode($response->getContent());
+    }
+
+    /**
+     * @param array $emails
+     * @return void
+     */
+    private function processUnsubscribes($emails)
+    {
+        $obj = \Magento\Framework\App\ObjectManager::getInstance();
+
+        foreach ($emails as $email) {
+            $obj->get('\Magento\Newsletter\Model\Subscriber')->loadByEmail($email)->unsubscribe();
+        }
+    }
+
+    /**
+     * @param \Magento\Newsletter\Model\Subscriber $subscriber
+     * @return bool
+     */
+    private function isSubscribed($subscriber)
+    {
+        $status = $subscriber->getStatus();
+
+        return $status !== null
+            && (int) $status === \Magento\Newsletter\Model\Subscriber::STATUS_SUBSCRIBED;
     }
 }
