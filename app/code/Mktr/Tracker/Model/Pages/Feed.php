@@ -214,6 +214,10 @@ class Feed
             $salePrice = $salePrice > 0 ? self::getHelp()->getTax->getTaxPrice($product, $salePrice, true) : $price;
         }
 
+        if ($salePrice > $price) {
+            $salePrice = $price;
+        }
+
         $media_gallery = [
             'image'=>[]
         ];
@@ -321,7 +325,11 @@ class Feed
                         $vPrice = self::getHelp()->getTax->getTaxPrice($p, $vPrice, true);
                         $vSalePrice = $vSalePrice > 0 ? self::getHelp()->getTax->getTaxPrice($p, $vSalePrice, true) : $vPrice;
                     }
-                    
+
+                    if ($vSalePrice > $vPrice) {
+                        $vSalePrice = $vPrice;
+                    }
+
                     $v = [
                         'id' => $p->getId(),
                         'sku' => $p->getSku(),
