@@ -46,7 +46,7 @@ class Data extends AbstractHelper
         "getCustomerAddress" => [null,'get','\Magento\Customer\Model\Address'],
         "getProduct" => [null,'create','Magento\Catalog\Model\ProductRepository'],
         "getProductRepo" => [null,'create','Magento\Catalog\Model\Product'],
-        "getProductCol" => [null,'create|create','\Magento\Catalog\Model\ResourceModel\Product\CollectionFactory'],
+        "getProductCol" => [null,'create','\Magento\Catalog\Model\ResourceModel\Product\CollectionFactory'],
         "getProductMedia" => [null,'create','\Magento\Catalog\Api\ProductAttributeMediaGalleryManagementInterface'],
         "getStockRepo" => [null,'create','\Magento\CatalogInventory\Api\StockRegistryInterface'],
         "getBrands" => [null,'create','\Magento\Catalog\Api\ProductAttributeRepositoryInterface'],

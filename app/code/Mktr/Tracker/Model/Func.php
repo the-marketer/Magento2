@@ -167,7 +167,12 @@ class Func
             $script = self::getStoreId();
         }
 
-        $fileName = $fName.".".$script.".".$params["mime-type"];
+        $pageKey = '';
+        if (isset($params['page']) || isset($params['limit'])) {
+            $pageKey = '.p' . ($params['page'] ?? 'all') . '.l' . ($params['limit'] ?? '50');
+        }
+
+        $fileName = $fName.".".$script.$pageKey.".".$params["mime-type"];
 
         if (isset($params['read']) && $module->isExists($fileName)) {
             $out = $module->readFile($fileName);

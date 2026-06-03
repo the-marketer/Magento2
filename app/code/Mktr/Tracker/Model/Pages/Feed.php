@@ -128,20 +128,20 @@ class Feed
             self::$params['page'] = 1;
         }
 
-        self::$params['page'] = (int) (self::$params['page'] ?? 1);
+        self::$params['page'] = max(1, (int) (self::$params['page'] ?? 1));
         self::$params['limit'] = (int) (self::$params['limit'] ?? 50);
 
-        self::$data['products'] = self::getHelp()->getProductCol
-            // ->getCollection()
+        $storeId = self::getHelp()->getFunc->getStoreId();
+
+        self::$data['products'] = self::getHelp()->getProductCol->create()
             ->setPageSize(self::$params['limit'])
             ->setOrder('created_at', 'ASC')
             ->addAttributeToSelect(['id'])
-            ->addStoreFilter(self::getHelp()->getFunc->getStoreId())
-            // ->setStoreId(self::getHelp()->getFunc->getStoreId())
-            // ->addWebsiteFilter(self::getHelp()->getFunc->getStoreId())
-            // ->addFieldToFilter('store_id',array('in', self::getHelp()->getFunc->getStoreId()))
+            ->addStoreFilter($storeId)
             ->addAttributeToFilter('visibility', ['neq' => \Magento\Catalog\Model\Product\Visibility::VISIBILITY_NOT_VISIBLE])
-            ->addAttributeToFilter('status', Status::STATUS_ENABLED);
+            ->addAttributeToFilter('status', Status::STATUS_ENABLED)
+            ->addAttributeToFilter( ['attribute' => 'price', 'gt' => 0]);
+
 
         $lastPage = self::$data['products']->getLastPageNumber();
 
@@ -190,16 +190,9 @@ class Feed
 
     public static function buildProduct($product)
     {
-        // if($product->getId()!=84) { return false; }
-        // $product->setStoreId(self::getHelp()->getFunc->getStoreId());
         $listCategory = self::getHelp()->getManager->buildMultiCategory($product->getCategoryIds());
-        // if($product->getId() == 93) { var_dump($product->getCategoryIds(), $listCategory); die(); }
 
-
-                    // var_dump('Alex', $product->getSku());
-        // $price = $product->getPrice();
         $price = $product->getPriceInfo()->getPrice('regular_price')->getValue();
-        // $finalPrice = $product->getFinalPrice();
         $finalPrice = $product->getPriceInfo()->getPrice('final_price')->getValue();
 
         if (empty((float) $finalPrice) && empty((float) $price)) {
@@ -235,10 +228,6 @@ class Feed
         /** TODO: Magento 2 */
         if (self::checkMSI()) {
             $MasterQty = 0;
-            /*
-            $item->getStatus();
-            $item->getSourceCode();
-            */
             foreach (self::getMSI()->execute($product->getSku()) as $item) {
                 $MasterQty = self::AddQTY($item, $MasterQty);
             }
@@ -247,7 +236,6 @@ class Feed
         }
 
         if ($product->getTypeId() == 'configurable') {
-            // $product->getTypeInstance()->getUsedProducts($product);
             $variants = $product->getTypeInstance()->getUsedProducts($product);
             foreach ($variants as $p) {
 
@@ -278,28 +266,6 @@ class Feed
                             }
                         }
                     }
-                    /*
-                    $ls = [];
-
-                    foreach ($p->getAttributes() as $vv) {
-                        $code = $vv->getAttributeCode();
-                        $lable = $vv->getFrontendLabel();
-                        $ls[] = [$code, $lable];
-                        if (empty($attribute['size']) && (in_array($code , self::$attr['color']) || in_array($lable , self::$attr['color']))) {
-                            $attribute['color'] = $p->getAttributeText($code);
-                            if (!empty($attribute['color'])) { break; }
-                        }
-                        if (empty($attribute['size']) && (in_array($code , self::$attr['size']) || in_array($lable , self::$attr['size']))) {
-                            $attribute['size'] = $p->getAttributeText($code);
-                            if (!empty($attribute['size'])) { break; }
-                        }
-                        if (!empty($attribute['size']) && !empty($attribute['color'])) {
-                            break;
-                        }
-                    }
-                    var_dump($p->getData('colordd'), $p->getAttributeText('color'), self::$attr['color'], self::$attr['size'], $attribute, $ls);die();
-                    */
-                    /** TODO: Magento 2 */
                     if (self::checkMSI()) {
                         $qty = 0;
                         foreach (self::getMSI()->execute($p->getSku()) as $item) {
