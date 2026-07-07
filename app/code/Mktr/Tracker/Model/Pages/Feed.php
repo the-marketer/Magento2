@@ -14,9 +14,8 @@ use Exception;
 use Magento\Catalog\Model\Product\Attribute\Source\Status;
 use Magento\Catalog\Model\Product\Visibility;
 
-use Magento\Framework\Module\Manager as ModuleManager;
 use Magento\Framework\UrlInterface;
-use Magento\InventoryApi\Api\GetSourceItemsBySkuInterface;
+use Mktr\Tracker\Api\SourceItemsBySkuResolverInterface;
 use Mktr\Tracker\Helper\Data;
 
 class Feed
@@ -25,7 +24,6 @@ class Feed
     private $secondName = "product";
     private $error = null;
     private $params = null;
-    private $msiEnabled = null;
     private $sourceMsi = null;
     private $data;
     private $attr;
@@ -37,23 +35,16 @@ class Feed
     private $helper;
 
     /**
-     * @var ModuleManager
+     * @var SourceItemsBySkuResolverInterface
      */
-    private $moduleManager;
-
-    /**
-     * @var GetSourceItemsBySkuInterface
-     */
-    private $sourceItemsBySku;
+    private $sourceItemsBySkuResolver;
 
     public function __construct(
         Data $helper,
-        ModuleManager $moduleManager,
-        GetSourceItemsBySkuInterface $sourceItemsBySku
+        SourceItemsBySkuResolverInterface $sourceItemsBySkuResolver
     ) {
         $this->helper = $helper;
-        $this->moduleManager = $moduleManager;
-        $this->sourceItemsBySku = $sourceItemsBySku;
+        $this->sourceItemsBySkuResolver = $sourceItemsBySkuResolver;
     }
 
     public function getName()
@@ -168,10 +159,7 @@ class Feed
 
     public function checkMSI()
     {
-        if ($this->msiEnabled === null) {
-            $this->msiEnabled = $this->moduleManager->isEnabled('Magento_Inventory');
-        }
-        return $this->msiEnabled;
+        return $this->sourceItemsBySkuResolver->isEnabled();
     }
 
     public function AddQTY($item = null, $MasterQty = 0) {
@@ -228,7 +216,7 @@ class Feed
         /** TODO: Magento 2 */
         if ($this->checkMSI()) {
             $MasterQty = 0;
-            foreach ($this->sourceItemsBySku->execute($product->getSku()) as $item) {
+            foreach ($this->sourceItemsBySkuResolver->execute($product->getSku()) as $item) {
                 $MasterQty = $this->AddQTY($item, $MasterQty);
             }
         } else {
@@ -268,7 +256,7 @@ class Feed
                     }
                     if ($this->checkMSI()) {
                         $qty = 0;
-                        foreach ($this->sourceItemsBySku->execute($p->getSku()) as $item) {
+                        foreach ($this->sourceItemsBySkuResolver->execute($p->getSku()) as $item) {
                             $qty = $this->AddQTY($item, $qty);
                         }
                     } else {

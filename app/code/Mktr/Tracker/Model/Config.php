@@ -98,7 +98,7 @@ importScripts("https://t.themarketer.com/firebase.js");';
     private $storeManager;
 
     /**
-     * @var array<string, mixed>
+     * @var array<int|string, array<string, mixed>>
      */
     private $configCache = [];
 
@@ -157,14 +157,14 @@ importScripts("https://t.themarketer.com/firebase.js");';
         return self::FireBaseMessaging;
     }
 
-    /** @noinspection PhpUnused */
+    /**
+     * @param int|string $store
+     */
     public function setScopeCode($store): void
     {
-        $this->configCache = [];
         $this->scopeCode = $store;
     }
 
-    /** @noinspection PhpUnused */
     public function getScopeCode()
     {
         if ($this->scopeCode === null) {
@@ -172,6 +172,11 @@ importScripts("https://t.themarketer.com/firebase.js");';
         }
 
         return $this->scopeCode;
+    }
+
+    private function getScopeCacheKey()
+    {
+        return (string) $this->getScopeCode();
     }
 
     public function getStoreValue($name, $store)
@@ -185,20 +190,27 @@ importScripts("https://t.themarketer.com/firebase.js");';
 
     public function getValue($name)
     {
-        if (empty($this->configCache[$name])) {
+        $scopeKey = $this->getScopeCacheKey();
+
+        if (!array_key_exists($scopeKey, $this->configCache)) {
+            $this->configCache[$scopeKey] = [];
+        }
+
+        if (!array_key_exists($name, $this->configCache[$scopeKey])) {
             if (isset(self::configNames[$name])) {
-                $this->configCache[$name] = $this->scopeConfig->getValue(
+                $this->configCache[$scopeKey][$name] = $this->scopeConfig->getValue(
                     self::configNames[$name],
                     self::scopeType,
                     $this->getScopeCode()
                 );
                 if (in_array($name, ['color', 'size', 'brand'], true)) {
-                    $this->configCache[$name] = !empty($this->configCache[$name])
-                        ? explode("|", $this->configCache[$name])
+                    $this->configCache[$scopeKey][$name] = $this->configCache[$scopeKey][$name] !== null
+                        && $this->configCache[$scopeKey][$name] !== ''
+                        ? explode("|", $this->configCache[$scopeKey][$name])
                         : [];
                 }
             } else {
-                $this->configCache[$name] = $this->scopeConfig->getValue(
+                $this->configCache[$scopeKey][$name] = $this->scopeConfig->getValue(
                     $name,
                     self::scopeType,
                     $this->getScopeCode()
@@ -206,7 +218,7 @@ importScripts("https://t.themarketer.com/firebase.js");';
             }
         }
 
-        return $this->configCache[$name];
+        return $this->configCache[$scopeKey][$name];
     }
 
     /** @noinspection PhpUnused */

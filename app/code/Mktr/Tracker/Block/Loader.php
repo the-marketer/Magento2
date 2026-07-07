@@ -119,7 +119,7 @@ class Loader extends Template
 
         if (!empty($selector)) {
             $lines[] = 'window.addEventListener("click", function(event){ 
-                let selector1 = "' . str_replace('"', '\"', $selector) . '";
+                let selector1 = ' . json_encode($selector) . ';
                 let closestElem1 = event.target.closest(selector1);
                 let closestElem2 = event.target.matches(selector1);
                 if (closestElem1 || closestElem2) { setTimeout(window.mktr.loadEvents, 3000); }

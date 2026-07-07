@@ -310,10 +310,6 @@ class Func
                                 }
 
                                 $expectedToken = (string) $this->config->getRestKey();
-                                if ($token && hash_equals($expectedToken, (string) $token)) {
-                                    break;
-                                }
-
                                 if (!$token || !hash_equals($expectedToken, (string) $token)) {
                                     $error = "Incorrect Authorization";
                                 }
