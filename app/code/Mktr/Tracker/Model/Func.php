@@ -223,6 +223,16 @@ class Func
         return $result->setContents(self::$getOut);
     }
 
+    private static function logDeprecatedAuthFallback()
+    {
+        try {
+            $logger = \Magento\Framework\App\ObjectManager::getInstance()->get(\Psr\Log\LoggerInterface::class);
+            $logger->warning('Deprecated API authentication via query parameter "key" is being used. Please switch to Authorization: Bearer <key>.');
+        } catch (\Exception $e) {
+            // Intentionally ignored to avoid breaking auth flow.
+        }
+    }
+
     public static function isParamValid($checkParam = null)
     {
         self::$params = self::getHelp()->getRequest->getParams();
@@ -265,8 +275,12 @@ class Func
                                 }
                                 break;
                             case "Key":
-                                if (isset(self::$params[$k]) && self::$params[$k] !== self::getConfig()->getRestKey()) {
-                                    $error = "Incorrect REST API Key ". self::$params[$k];
+                                $providedKey = isset(self::$params[$k]) ? (string) self::$params[$k] : '';
+                                $expectedKey = (string) self::getConfig()->getRestKey();
+                                if ($providedKey !== '' && !hash_equals($expectedKey, $providedKey)) {
+                                    $error = "Incorrect REST API Key";
+                                } elseif ($providedKey !== '' && hash_equals($expectedKey, $providedKey)) {
+                                    self::logDeprecatedAuthFallback();
                                 }
                                 break;
                             case "KeyAuth":
@@ -277,7 +291,18 @@ class Func
                                     $token = $matches[1];
                                 }
 
-                                if (!$token || $token !== self::getConfig()->getRestKey()) {
+                                $expectedToken = (string) self::getConfig()->getRestKey();
+                                if ($token && hash_equals($expectedToken, (string) $token)) {
+                                    break;
+                                }
+
+                                $providedKey = isset(self::$params[$k]) ? (string) self::$params[$k] : '';
+                                if ($providedKey !== '' && hash_equals($expectedToken, $providedKey)) {
+                                    self::logDeprecatedAuthFallback();
+                                    break;
+                                }
+
+                                if (!$token || !hash_equals($expectedToken, (string) $token)) {
                                     $error = "Incorrect Authorization";
                                 }
                                 break;

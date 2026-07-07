@@ -135,6 +135,11 @@
                     <label>Trigger Selectors</label>
                     <comment><![CDATA[Buttons that will trigger events Like AddToCart]]></comment>
                 </field>
+                <field id="test_connection" translate="label" type="button" sortOrder="46"
+                       showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Test connection</label>
+                    <frontend_model>Mktr\Tracker\Block\Adminhtml\System\Config\TestConnection</frontend_model>
+                </field>
             </group>
             <group id="attribute" translate="label" type="text" sortOrder="11"
                    showInDefault="1" showInWebsite="1" showInStore="1">

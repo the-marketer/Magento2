@@ -151,7 +151,7 @@ class Orders extends Action
             self::getHelp()->getRequest->setParam("mime-type", 'json');
         }
         self::$error =  self::getHelp()->getFunc->isParamValid([
-            'key' => 'Required|Key|allow_export',
+            'key' => 'KeyAuth|allow_export',
             'start_date' => 'Required|DateCheck|StartDate',
             'page' => null,
             'customerId' => null

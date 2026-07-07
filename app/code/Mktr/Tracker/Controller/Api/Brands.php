@@ -52,7 +52,7 @@ class Brands extends Action
     public function execute()
     {
         self::$error =  self::getHelp()->getFunc->isParamValid([
-            'key' => 'Required|Key'
+            'key' => 'KeyAuth'
         ]);
 
         if ($this->status()) {

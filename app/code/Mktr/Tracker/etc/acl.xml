@@ -17,7 +17,7 @@
                 <resource id="Magento_Backend::stores">
                     <resource id="Magento_Backend::stores_settings">
                         <resource id="Magento_Config::config">
-                            <resource id="Mktr_Tracker::mktr" title="theMarketer"/>
+                            <resource id="Mktr_Tracker::mktr_tracker" title="theMarketer"/>
                         </resource>
                     </resource>
                 </resource>

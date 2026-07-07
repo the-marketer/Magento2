@@ -43,7 +43,7 @@ class Reviews extends Action
     public function execute()
     {
         self::$error = self::getHelp()->getFunc->isParamValid([
-            'key' => 'Required|Key',
+            'key' => 'KeyAuth',
             'start_date' => 'Required|DateCheck|StartDate'
         ]);
         if (self::status()) {

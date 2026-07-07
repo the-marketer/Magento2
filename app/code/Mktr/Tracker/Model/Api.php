@@ -12,6 +12,9 @@
 
 namespace Mktr\Tracker\Model;
 
+use Magento\Framework\HTTP\Client\Curl;
+use Psr\Log\LoggerInterface;
+
 class Api
 {
     private static $ins = [
@@ -20,12 +23,11 @@ class Api
     ];
 
     private static $mURL = "https://t.themarketer.com/api/v1/";
-    // private static $mURL = "https://eaxdev.ga/mktr/EventsTrap/";
-    private static $bURL = "https://eaxdev.ga/mktr/BugTrap";
 
     private static $timeOut = null;
 
-    private static $cURL = null;
+    private static $httpClient = null;
+    private static $logger = null;
 
     private static $params = null;
     private static $lastUrl = null;
@@ -36,16 +38,20 @@ class Api
 
     private static $return = null;
 
-    public function __construct()
+    public function __construct(
+        Config $config,
+        Curl $httpClient,
+        LoggerInterface $logger
+    )
     {
+        self::$ins["Config"] = $config;
+        self::$httpClient = $httpClient;
+        self::$logger = $logger;
         self::$return = $this;
     }
     /** TODO: Magento 2 */
     public static function getConfig()
     {
-        if (self::$ins["Config"] == null) {
-            self::$ins["Config"] = \Magento\Framework\App\ObjectManager::getInstance()->get("\Mktr\Tracker\Model\Config");
-        }
         return self::$ins["Config"];
     }
 
@@ -53,12 +59,6 @@ class Api
     public static function send($name, $data = [], $post = true)
     {
         return self::REST(self::$mURL . $name, $data, $post);
-    }
-
-    /** @noinspection PhpUnused */
-    public static function debug($data = [], $post = true)
-    {
-        return self::REST(self::$bURL, $data, $post);
     }
 
     /** @noinspection PhpUnused */
@@ -90,6 +90,16 @@ class Api
         return self::$exec;
     }
 
+    private static function getHttpClient()
+    {
+        return self::$httpClient;
+    }
+
+    private static function getLogger()
+    {
+        return self::$logger;
+    }
+
     public static function REST($url, $data = [], $post = true)
     {
         try {
@@ -106,7 +116,6 @@ class Api
                 'u' => self::getConfig()->getCustomerId()
             ], $data);
 
-
             self::$requestType = $post;
 
             if (self::$requestType) {
@@ -115,27 +124,27 @@ class Api
                 self::$lastUrl = $url .'?'. http_build_query(self::$params);
             }
 
-            self::$cURL = \curl_init();
-
-            \curl_setopt(self::$cURL, CURLOPT_CONNECTTIMEOUT, self::$timeOut);
-            \curl_setopt(self::$cURL, CURLOPT_TIMEOUT, self::$timeOut);
-            \curl_setopt(self::$cURL, CURLOPT_URL, self::$lastUrl);
-            \curl_setopt(self::$cURL, CURLOPT_POST, self::$requestType);
+            $client = self::getHttpClient();
+            $client->setOption(CURLOPT_CONNECTTIMEOUT, self::$timeOut);
+            $client->setOption(CURLOPT_TIMEOUT, self::$timeOut);
+            $client->setOption(CURLOPT_SSL_VERIFYPEER, true);
+            $client->setOption(CURLOPT_SSL_VERIFYHOST, 2);
 
             if (self::$requestType) {
-                \curl_setopt(self::$cURL, CURLOPT_POSTFIELDS, http_build_query(self::$params));
+                $client->post(self::$lastUrl, self::$params);
+            } else {
+                $client->get(self::$lastUrl);
             }
 
-            \curl_setopt(self::$cURL, CURLOPT_RETURNTRANSFER, true);
-            \curl_setopt(self::$cURL, CURLOPT_SSL_VERIFYPEER, false);
-
-            self::$exec = \curl_exec(self::$cURL);
-
-            self::$info = \curl_getinfo(self::$cURL);
-
-            \curl_close(self::$cURL);
+            self::$exec = $client->getBody();
+            self::$info = ['http_code' => $client->getStatus()];
         } catch (\Exception $e) {
-
+            self::$exec = null;
+            self::$info = ['http_code' => 0];
+            self::getLogger()->warning('TheMarketer API request failed', [
+                'url' => $url,
+                'message' => $e->getMessage()
+            ]);
         }
         return self::$return;
     }

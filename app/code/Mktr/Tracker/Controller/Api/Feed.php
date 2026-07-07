@@ -49,8 +49,8 @@ class Feed extends Action
     public function execute()
     {
         /** @noinspection DuplicatedCode */
-        self::$error =  self::getHelp()->getFunc->isParamValid(self::$params, [
-            'key' => 'Required|Key'
+        self::$error =  self::getHelp()->getFunc->isParamValid([
+            'key' => 'KeyAuth'
         ]);
 
         if ($this->status()) {
