@@ -64,7 +64,11 @@ class CodeGenerator extends Action
         ]);
 
         if (self::status()) {
-            $gCode = self::getCodeGen()->getNewCode(self::getHelp()->getRequest->getParams());
+            try {
+                $gCode = self::getCodeGen()->getNewCode(self::getHelp()->getRequest->getParams());
+            } catch (\Throwable $e) {
+                return self::getHelp()->getFunc->Output([ 'status' => 'Unable to generate discount code' ]);
+            }
 
             return self::getHelp()->getFunc->Output([ 'code' => $gCode->getCouponCodeGenerator()->getCode() ]);
         }

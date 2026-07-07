@@ -38,13 +38,34 @@ class StockSource implements \Magento\Framework\Option\ArrayInterface
     
     public static function checkMSI () {
         if (self::$MSI === null) {
-            if (\Magento\Framework\App\ObjectManager::getInstance()->get("\Magento\Framework\Module\Manager")->isEnabled('Magento_Inventory')) {
-                self::$MSI = true;
-            } else {
+            if (!interface_exists('\Magento\InventoryApi\Api\SourceRepositoryInterface')) {
+                self::$MSI = false;
+                return self::$MSI;
+            }
+
+            try {
+                self::$MSI = \Magento\Framework\App\ObjectManager::getInstance()
+                    ->get("\Magento\Framework\Module\Manager")
+                    ->isEnabled('Magento_Inventory');
+            } catch (\Throwable $e) {
                 self::$MSI = false;
             }
         }
         return self::$MSI;
+    }
+
+    private static function getSourceValue($source, $key)
+    {
+        if (is_array($source) && isset($source[$key])) {
+            return $source[$key];
+        }
+
+        $method = 'get' . str_replace(' ', '', ucwords(str_replace('_', ' ', $key)));
+        if (is_object($source) && method_exists($source, $method)) {
+            return $source->{$method}();
+        }
+
+        return null;
     }
 
     public static function getList ($type = 0) {
@@ -54,9 +75,20 @@ class StockSource implements \Magento\Framework\Option\ArrayInterface
                 [ [ 'value' => 'all', 'label' => __('All') ] ]
             ];
             if (self::checkMSI()) {
-                foreach (self::getMSI()->getList(self::getCriteria())->getItems() as $v) {
-                    self::$list[0][$v['source_code']] = __($v['name']);
-                    self::$list[1][] = [ 'value' => $v['source_code'], 'label' => __($v['name']) ];
+                try {
+                    foreach (self::getMSI()->getList(self::getCriteria())->getItems() as $v) {
+                        $sourceCode = self::getSourceValue($v, 'source_code');
+                        $name = self::getSourceValue($v, 'name');
+
+                        if ($sourceCode === null || $name === null) {
+                            continue;
+                        }
+
+                        self::$list[0][$sourceCode] = __($name);
+                        self::$list[1][] = [ 'value' => $sourceCode, 'label' => __($name) ];
+                    }
+                } catch (\Throwable $e) {
+                    return self::$list[$type];
                 }
             }
         }

@@ -91,6 +91,7 @@ class DiscountCode extends \Magento\Framework\DataObject implements Codegenerato
             ->getFirstItem();
 
         if ($existingRule === null || !$existingRule->getRuleId()) {
+            self::$NewCode[$name] = self::getRule();
 
             if (self::$sIds === null) {
                 $nIds = [];
