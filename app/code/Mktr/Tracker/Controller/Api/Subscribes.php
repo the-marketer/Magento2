@@ -11,47 +11,34 @@
 namespace Mktr\Tracker\Controller\Api;
 
 use Magento\Framework\App\Action\Action;
+use Magento\Framework\App\Action\Context;
+use Mktr\Tracker\Helper\Data;
 
 class Subscribes extends Action
 {
-    private static $ins = [
-        "Help" => null,
-        "Config" => null
-    ];
+    /**
+     * @var Data
+     */
+    private $helper;
 
-    private static $error = null;
-
-    private static function status()
-    {
-        return self::$error == null;
-    }
-
-    public function __construct(\Magento\Framework\App\Action\Context $context)
+    public function __construct(Context $context, Data $helper)
     {
         parent::__construct($context);
-    }
-
-    /** TODO: Magento 2 */
-    public static function getHelp()
-    {
-        if (self::$ins["Help"] == null) {
-            self::$ins["Help"] = \Magento\Framework\App\ObjectManager::getInstance()->get('\Mktr\Tracker\Helper\Data');
-        }
-        return self::$ins["Help"];
+        $this->helper = $helper;
     }
 
     public function execute()
     {
-        self::$error = self::getHelp()->getFunc->isParamValid([
+        $error = $this->helper->getFunc->isParamValid([
             'key' => 'KeyAuth',
             'date_from' => 'DateCheck|StartDate',
             'date_to' => 'DateCheck'
         ]);
 
-        if (self::status()) {
-            return self::getHelp()->getFunc->Output('unsubscribe', self::getHelp()->getPagesSubscribes->execute());
+        if ($error === null) {
+            return $this->helper->getFunc->Output('unsubscribe', $this->helper->getPagesSubscribes->execute());
         }
 
-        return self::getHelp()->getFunc->Output('status', self::$error);
+        return $this->helper->getFunc->Output('status', $error);
     }
 }

@@ -11,21 +11,46 @@
 
 namespace Mktr\Tracker\Model;
 
-use Mktr\Tracker\Helper\Data;
+use Magento\Catalog\Model\CategoryFactory;
+use Magento\Framework\App\Request\Http as HttpRequest;
+use Magento\Framework\Registry;
 
 class Manager
 {
-    private static $data = [];
-    private static $assets = [];
-    private static $bMultiCat = [];
-    private static $cons = null;
+    /**
+     * @var array
+     */
+    private $data = [];
 
-    private static $ins = [
-        "Help" => null,
-        "Config" => null
-    ];
+    /**
+     * @var array
+     */
+    private $assets = [];
 
-    private static $shName = null;
+    /**
+     * @var array
+     */
+    private $bMultiCat = [];
+
+    /**
+     * @var Func
+     */
+    private $func;
+
+    /**
+     * @var Registry
+     */
+    private $registry;
+
+    /**
+     * @var HttpRequest
+     */
+    private $request;
+
+    /**
+     * @var CategoryFactory
+     */
+    private $categoryFactory;
 
     const eventsName = [
         "__sm__view_homepage" =>"HomePage",
@@ -143,79 +168,70 @@ class Manager
         ]
     ];
 
-    public function __construct(Data $help)
-    {
-        self::$ins['Help'] = $help;
-        self::$cons = $this;
+    public function __construct(
+        Func $func,
+        Registry $registry,
+        HttpRequest $request,
+        CategoryFactory $categoryFactory
+    ) {
+        $this->func = $func;
+        $this->registry = $registry;
+        $this->request = $request;
+        $this->categoryFactory = $categoryFactory;
     }
 
-
-    /** TODO: Magento 2 */
-    public static function getHelp()
-    {
-        if (self::$ins["Help"] == null) {
-            self::$ins["Help"] = \Magento\Framework\App\ObjectManager::getInstance()->get('\Mktr\Tracker\Helper\Data');
-        }
-        return self::$ins["Help"];
-    }
-
-    public static function getEvent($Name, $eventData = [])
+    public function getEvent($Name, $eventData = [])
     {
         if (empty(self::eventsName[$Name])) {
             return false;
         }
 
-        self::$shName = self::eventsName[$Name];
+        $shName = self::eventsName[$Name];
 
-        self::$data = [
+        $this->data = [
             "event" => $Name
         ];
 
-        self::$assets = [];
+        $this->assets = [];
 
-        switch (self::$shName) {
+        switch ($shName) {
             case "Category":
-                self::$assets['category'] = self::buildCategory(self::getHelp()->getRegistry('current_category'));
+                $this->assets['category'] = $this->buildCategory($this->registry->registry('current_category'));
                 break;
             case "Product":
-                self::$assets['product_id'] = self::getHelp()->getRegistry('current_product')->getId();
+                $this->assets['product_id'] = $this->registry->registry('current_product')->getId();
                 break;
             case "Search":
-                self::$assets['search_term'] = self::getHelp()->getRequest->getParam('q');
+                $this->assets['search_term'] = $this->request->getParam('q');
                 break;
             default:
-                self::$assets = $eventData;
+                $this->assets = $eventData;
         }
 
-        self::$assets = self::schemaValidate(self::$assets, self::eventsSchema[self::$shName]);
+        $this->assets = $this->schemaValidate($this->assets, self::eventsSchema[$shName]);
+        $this->build();
 
-        self::build();
-
-        if (self::$cons == null) {
-            return new self(self::getHelp());
-        } else {
-            return self::$cons;
-        }
+        return $this;
     }
 
-    public static function getEventsSchema($sName = null)
+    public function getEventsSchema($sName = null)
     {
         return $sName === null ? self::eventsSchema : self::eventsSchema[$sName];
     }
 
-    public static function schemaValidate($array, $schema): ?array
+    public function schemaValidate($array, $schema): ?array
     {
         $newOut = [];
 
         foreach ($array as $key => $val) {
             if (isset($schema[$key])) {
                 if (is_array($val)) {
-                    $newOut[$schema[$key]["@key"]] = self::schemaValidate($val, $schema[$key]["@schema"]);
+                    $newOut[$schema[$key]["@key"]] = $this->schemaValidate($val, $schema[$key]["@schema"]);
                 } else {
                     $newOut[$schema[$key]] = $val;
                 }
             } elseif (is_array($val)) {
-                $newOut[] = self::schemaValidate($val, $schema);
+                $newOut[] = $this->schemaValidate($val, $schema);
             }
         }
 
@@ -223,33 +239,33 @@ class Manager
     }
 
     /** @noinspection PhpMissingReturnTypeInspection */
-    public static function buildMultiCategory($List) {
-        
-        self::$bMultiCat = [];
-        foreach ($List as $key => $value) {
-            $categoryRegistry = self::getHelp()->getCategoryRepo->load($value);
+    public function buildMultiCategory($List)
+    {
+        $this->bMultiCat = [];
+        foreach ($List as $value) {
+            $categoryRegistry = $this->categoryFactory->create()->load($value);
 
             if ($categoryRegistry->getLevel() == 2) {
-                self::$bMultiCat[$categoryRegistry->getPath()][] = $categoryRegistry->getName();
+                $this->bMultiCat[$categoryRegistry->getPath()][] = $categoryRegistry->getName();
             } else {
                 $add = true;
-                foreach (self::$bMultiCat as $key => $value) {
-                    if (strpos($categoryRegistry->getPath(), $key) !== false) {
-                        self::$bMultiCat[$key][] = $categoryRegistry->getName();
+                foreach ($this->bMultiCat as $pathKey => $pathValue) {
+                    if (strpos($categoryRegistry->getPath(), $pathKey) !== false) {
+                        $this->bMultiCat[$pathKey][] = $categoryRegistry->getName();
                         $add = false;
                     }
                 }
                 if ($add) {
-                    self::$bMultiCat[$categoryRegistry->getPath()][] = $categoryRegistry->getName();
+                    $this->bMultiCat[$categoryRegistry->getPath()][] = $categoryRegistry->getName();
                 }
             }
         }
-        if (empty(self::$bMultiCat)) {
-            self::$bMultiCat[] = "Default Category";
+        if (empty($this->bMultiCat)) {
+            $this->bMultiCat[] = "Default Category";
         }
 
         $subTrees = [];
-        foreach (self::$bMultiCat as $categoryTree) {
+        foreach ($this->bMultiCat as $categoryTree) {
             if (is_array($categoryTree)) {
                 $subTrees[] = implode('|', $categoryTree);
             } else {
@@ -260,50 +276,47 @@ class Manager
         $categoriesTree = $subTrees;
         if (is_array($categoriesTree)) {
             $categoriesTree = implode('||', $subTrees);
-        } else {
-            $categoriesTree = $subTrees;
         }
 
         return $categoriesTree;
     }
 
-    public static function buildSingleCategory($categoryRegistry)
+    public function buildSingleCategory($categoryRegistry)
     {
         if ($categoryRegistry->getId() != 2) {
-            self::$bMultiCat[] = $categoryRegistry->getName();
+            $this->bMultiCat[] = $categoryRegistry->getName();
 
             while ($categoryRegistry->getLevel() > 2) {
-
-                $categoryRegistry = self::getHelp()->getCategoryRepo->load($categoryRegistry->getParentId());
-
-                self::$bMultiCat[] = $categoryRegistry->getName();
+                $categoryRegistry = $this->categoryFactory->create()->load($categoryRegistry->getParentId());
+                $this->bMultiCat[] = $categoryRegistry->getName();
             }
         }
     }
-    public static function buildCategory($categoryRegistry)
+
+    public function buildCategory($categoryRegistry)
     {
         if ($categoryRegistry->getId() != 2) {
-            $build = [ $categoryRegistry->getName() ];
+            $build = [$categoryRegistry->getName()];
             while ($categoryRegistry->getLevel() > 2) {
-
-                $categoryRegistry = self::getHelp()->getCategoryRepo->load($categoryRegistry->getParentId());
-
+                $categoryRegistry = $this->categoryFactory->create()->load($categoryRegistry->getParentId());
                 $build[] = $categoryRegistry->getName();
             }
 
             return implode("|", array_reverse($build));
         }
+
+        return null;
     }
 
-    public static function build()
+    public function build()
     {
-        foreach (self::$assets as $key => $val) {
-            self::$data[$key] = $val;
+        foreach ($this->assets as $key => $val) {
+            $this->data[$key] = $val;
         }
     }
 
     public function toJson()
     {
-        return self::getHelp()->getFunc->toJson(self::$data);
+        return $this->func->toJson($this->data);
     }
 }

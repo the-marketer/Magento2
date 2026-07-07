@@ -10,22 +10,74 @@
 
 namespace Mktr\Tracker\Model;
 
+use Magento\Customer\Api\AccountManagementInterface;
+use Magento\Customer\Api\CustomerRepositoryInterface;
+use Magento\Customer\Api\Data\CustomerInterfaceFactory;
+use Magento\Customer\Model\Session;
+use Magento\Framework\App\Config\ScopeConfigInterface;
+use Magento\Framework\Data\Collection\AbstractDb;
+use Magento\Framework\DataObject\Helper\DataObjectHelper;
+use Magento\Framework\Model\AbstractResource;
+use Magento\Framework\Model\Context;
+use Magento\Framework\Registry;
+use Magento\Framework\Stdlib\DateTime\DateTime;
+use Magento\Framework\Translate\Inline\StateInterface;
+use Magento\Newsletter\Helper\Data as NewsletterHelper;
+use Magento\Newsletter\Model\SubscriptionManagerInterface;
+use Magento\Store\Model\StoreManagerInterface;
+
 class Newsletter extends \Magento\Newsletter\Model\Subscriber
 {
-    private static $Mktr = null;
+    /**
+     * @var Config
+     */
+    private $mktrConfig;
 
-    /** TODO: Magento 2 */
-    public static function getHelp()
-    {
-        if (self::$Mktr == null) {
-            self::$Mktr = \Magento\Framework\App\ObjectManager::getInstance()->get('\Mktr\Tracker\Model\Config');
-        }
-        return self::$Mktr;
+    public function __construct(
+        Context $context,
+        Registry $registry,
+        NewsletterHelper $newsletterData,
+        ScopeConfigInterface $scopeConfig,
+        \Magento\Framework\Mail\Template\TransportBuilder $transportBuilder,
+        StoreManagerInterface $storeManager,
+        Session $customerSession,
+        CustomerRepositoryInterface $customerRepository,
+        AccountManagementInterface $customerAccountManagement,
+        StateInterface $inlineTranslation,
+        Config $mktrConfig,
+        AbstractResource $resource = null,
+        AbstractDb $resourceCollection = null,
+        array $data = [],
+        DateTime $dateTime = null,
+        CustomerInterfaceFactory $customerFactory = null,
+        DataObjectHelper $dataObjectHelper = null,
+        SubscriptionManagerInterface $subscriptionManager = null
+    ) {
+        $this->mktrConfig = $mktrConfig;
+        parent::__construct(
+            $context,
+            $registry,
+            $newsletterData,
+            $scopeConfig,
+            $transportBuilder,
+            $storeManager,
+            $customerSession,
+            $customerRepository,
+            $customerAccountManagement,
+            $inlineTranslation,
+            $resource,
+            $resourceCollection,
+            $data,
+            $dateTime,
+            $customerFactory,
+            $dataObjectHelper,
+            $subscriptionManager
+        );
     }
 
     public function sendConfirmationSuccessEmail()
     {
-        if (self::getHelp()->getOptIn() == 0) {
+        if ($this->mktrConfig->getOptIn() == 0) {
             return parent::sendConfirmationSuccessEmail();
         }
         return $this;
@@ -33,7 +85,7 @@ class Newsletter extends \Magento\Newsletter\Model\Subscriber
 
     public function sendUnsubscriptionEmail()
     {
-        if (self::getHelp()->getOptIn() == 0) {
+        if ($this->mktrConfig->getOptIn() == 0) {
             return parent::sendUnsubscriptionEmail();
         }
         return $this;

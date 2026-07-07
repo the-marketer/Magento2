@@ -11,45 +11,35 @@
 namespace Mktr\Tracker\Controller\Api;
 
 use Magento\Framework\App\Action\Action;
+use Magento\Framework\App\Action\Context;
+use Mktr\Tracker\Helper\Data;
 
 class Reviews extends Action
 {
-    private static $ins = [
-        "Help" => null,
-        "Config" => null
-    ];
+    /**
+     * @var Data
+     */
+    private $helper;
 
-    private static $error = null;
-
-    private static function status()
-    {
-        return self::$error == null;
-    }
-
-    public function __construct(\Magento\Framework\App\Action\Context $context)
+    public function __construct(Context $context, Data $helper)
     {
         parent::__construct($context);
-    }
-
-    /** TODO: Magento 2 */
-    public static function getHelp()
-    {
-        if (self::$ins["Help"] == null) {
-            self::$ins["Help"] = \Magento\Framework\App\ObjectManager::getInstance()->get('\Mktr\Tracker\Helper\Data');
-        }
-        return self::$ins["Help"];
+        $this->helper = $helper;
     }
 
     public function execute()
     {
-        self::$error = self::getHelp()->getFunc->isParamValid([
+        $error = $this->helper->getFunc->isParamValid([
             'key' => 'KeyAuth',
             'start_date' => 'Required|DateCheck|StartDate'
         ]);
-        if (self::status()) {
-            return self::getHelp()->getFunc->Output('reviews', json_decode(json_encode(self::getHelp()->getPagesReviews->execute()), true));
+        if ($error === null) {
+            return $this->helper->getFunc->Output(
+                'reviews',
+                json_decode(json_encode($this->helper->getPagesReviews->execute()), true)
+            );
         }
 
-        return self::getHelp()->getFunc->Output('status', self::$error);
+        return $this->helper->getFunc->Output('status', $error);
     }
 }

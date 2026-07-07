@@ -12,56 +12,40 @@ namespace Mktr\Tracker\Controller\Api;
 
 use Magento\Framework\App\Action\Action;
 use Magento\Framework\App\Action\Context;
+use Magento\Newsletter\Model\Subscriber;
 use Mktr\Tracker\Helper\Data;
 
 class Feed extends Action
 {
-    private static $ins = [
-        "Help" => null
-    ];
+    /**
+     * @var Data
+     */
+    private $helper;
 
-    private static $error = null;
-    private static $params = null;
-    private static $fileName = "products";
-    private static $secondName = "product";
+    private $fileName = "products";
+    private $secondName = "product";
 
-    public function __construct(Context $context, Data $help)
+    public function __construct(Context $context, Data $helper)
     {
         parent::__construct($context);
-        self::$ins['Help'] = $help;
+        $this->helper = $helper;
     }
 
-    /** TODO: Magento 2 */
-    public static function getHelp()
-    {
-        if (self::$ins["Help"] == null) {
-            self::$ins["Help"] = \Magento\Framework\App\ObjectManager::getInstance()->get('\Mktr\Tracker\Helper\Data');
-        }
-        return self::$ins["Help"];
-    }
-
-    private static function status()
-    {
-        return self::$error == null;
-    }
-
-    /** @noinspection PhpUnused */
     public function execute()
     {
-        /** @noinspection DuplicatedCode */
-        self::$error =  self::getHelp()->getFunc->isParamValid([
+        $error = $this->helper->getFunc->isParamValid([
             'key' => 'KeyAuth'
         ]);
 
-        if ($this->status()) {
-            return self::getHelp()->getFunc->readOrWrite(self::$fileName, self::$secondName, $this);
+        if ($error === null) {
+            return $this->helper->getFunc->readOrWrite($this->fileName, $this->secondName, $this);
         }
 
-        return self::getHelp()->getFunc->Output('status', self::$error);
+        return $this->helper->getFunc->Output('status', $error);
     }
 
-    public static function freshData(): array
+    public function freshData(): array
     {
-        return self::getHelp()->getPagesFeed->freshData();
+        return $this->helper->getPagesFeed->freshData();
     }
 }

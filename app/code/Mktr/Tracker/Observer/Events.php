@@ -23,10 +23,14 @@ use Magento\Checkout\Model\Cart;
 
 class Events implements ObserverInterface
 {
-    private static $observer = null;
-    private static $eventName = null;
-    private static $eventAction = null;
-    private static $eventData = [];
+    private $observer = null;
+    private $eventName = null;
+    private $eventAction = null;
+    private $eventData = [];
+    /**
+     * @var Data
+     */
+    private $helper;
     private $request;
     private $response;
     private $checkoutSession;
@@ -55,20 +59,6 @@ class Events implements ObserverInterface
         "controller_action_postdispatch_checkout_cart_index" => "applyDiscountCode"
     ];
 
-    private static $ins = [
-        "Help" => null,
-        "Config" => null
-    ];
-
-    /** TODO: Magento 2 */
-    public static function getHelp()
-    {
-        if (self::$ins["Help"] == null) {
-            self::$ins["Help"] = \Magento\Framework\App\ObjectManager::getInstance()->get('\Mktr\Tracker\Helper\Data');
-        }
-        return self::$ins["Help"];
-    }
-
     public function __construct(
         Data $help,
         RequestInterface $request,
@@ -79,7 +69,7 @@ class Events implements ObserverInterface
         ProductFactory $productFactory,
         Cart $cart
     ) {
-        self::$ins["Help"] = $help;
+        $this->helper = $help;
         $this->request = $request;
         $this->response = $response;
         $this->checkoutSession = $checkoutSession;
@@ -92,13 +82,13 @@ class Events implements ObserverInterface
     /** @noinspection PhpUnused */
     public function execute($observer): bool
     {
-        self::$eventAction = $this;
-        self::$observer = $observer;
+        $this->eventAction = $this;
+        $this->observer = $observer;
 
-        self::$eventName = $this->getObserverEvents($observer->getEvent()->getName());
+        $this->eventName = $this->getObserverEvents($observer->getEvent()->getName());
 
-        if (!empty(self::$eventName)) {
-            $this->{self::$eventName}();
+        if (!empty($this->eventName)) {
+            $this->{$this->eventName}();
         }
         return true;
     }
@@ -117,56 +107,56 @@ class Events implements ObserverInterface
     /** @noinspection PhpUnused */
     public function addToCart()
     {
-        $variant = self::$observer->getEvent()->getQuoteItem()->getOptionByCode('simple_product');
+        $variant = $this->observer->getEvent()->getQuoteItem()->getOptionByCode('simple_product');
 
         if ($variant == null) {
-            $variant = self::$observer->getQuoteItem();
+            $variant = $this->observer->getQuoteItem();
         }
 
-        self::$eventData = [
-            'product_id' => self::$observer->getEvent()->getProduct()->getId(),
-            'quantity'=> (int) self::$observer->getQuoteItem()->getQty(),
+        $this->eventData = [
+            'product_id' => $this->observer->getEvent()->getProduct()->getId(),
+            'quantity'=> (int) $this->observer->getQuoteItem()->getQty(),
             'variation' => [
                 'id' => $variant->getProduct()->getId(),
                 'sku' => $variant->getProduct()->getSku()
             ]
         ];
 
-        self::MktrSessionSet();
+        $this->mktrSessionSet();
     }
 
     /** @noinspection PhpUnused */
     public function removeFromCart()
     {
-        $product = self::$observer->getQuoteItem();
+        $product = $this->observer->getQuoteItem();
 
-        $variant = self::$observer
+        $variant = $this->observer
             ->getEvent()
             ->getQuoteItem()
             ->getOptionByCode('simple_product');
 
         if ($variant == null) {
-            $variant = self::$observer->getQuoteItem();
+            $variant = $this->observer->getQuoteItem();
         }
 
-        self::$eventData = [
+        $this->eventData = [
             'product_id' => $product->getProductId(),
-            'quantity'=> (int) self::$observer->getQuoteItem()->getQty(),
+            'quantity'=> (int) $this->observer->getQuoteItem()->getQty(),
             'variation' => [
                 'id' => $variant->getProduct()->getId(),
                 'sku' => $variant->getProduct()->getSku()
             ]
         ];
 
-        self::MktrSessionSet();
+        $this->mktrSessionSet();
     }
 
     /** @noinspection PhpUnused */
     public function addToWishList()
     {
-        $product = self::$observer->getItem()->getOptionByCode('simple_product');
+        $product = $this->observer->getItem()->getOptionByCode('simple_product');
 
-        $ID = self::$observer->getEvent()->getProduct()->getId();
+        $ID = $this->observer->getEvent()->getProduct()->getId();
 
         if ($product == null) {
             $valueID = $ID;
@@ -174,22 +164,22 @@ class Events implements ObserverInterface
             $valueID = $product->getValue();
         }
 
-        self::$eventData = [
+        $this->eventData = [
             'product_id' => $ID,
             'variation' => [
                 'id' => $valueID,
                 /** TODO: Magento 1 = load($valueID)->getSku() | Magento 2 = getById($valueID)->getSku() */
-                'sku' => self::getHelp()->getProductRepo->load($valueID)->getSku()
+                'sku' => $this->helper->getProductRepo->load($valueID)->getSku()
             ]
         ];
 
-        self::MktrSessionSet();
+        $this->mktrSessionSet();
     }
 
     /** @noinspection PhpUnused */
     public function removeFromWishlist()
     {
-        $item = self::getHelp()->getWishItem->loadWithOptions(self::getHelp()->getRequest->getParam('item'));
+        $item = $this->helper->getWishItem->loadWithOptions($this->helper->getRequest->getParam('item'));
 
         $ID = $item->getProductId();
         $product = $item->getOptionByCode('simple_product');
@@ -200,30 +190,30 @@ class Events implements ObserverInterface
             $valueID = $product->getProductId();
         }
 
-        self::$eventData = [
+        $this->eventData = [
             'product_id' => $ID,
             'variation' => [
                 'id' => $valueID,
                 /** TODO: Magento 1 = load($valueID)->getSku() | Magento 2 = getById($valueID)->getSku() */
-                'sku' => self::getHelp()->getProductRepo->load($valueID)->getSku()
+                'sku' => $this->helper->getProductRepo->load($valueID)->getSku()
             ]
         ];
 
-        self::MktrSessionSet();
+        $this->mktrSessionSet();
     }
 
     /** @noinspection PhpUnused */
     public function saveOrder()
     {
-        $saveOrder = self::$observer->getOrder();
+        $saveOrder = $this->observer->getOrder();
         
         if ($saveOrder === null) {
-            $orderIds = self::$observer->getEvent()->getOrderIds();
-            $saveOrder = self::getHelp()->getOrderRepo->load($orderIds[0]);
+            $orderIds = $this->observer->getEvent()->getOrderIds();
+            $saveOrder = $this->helper->getOrderRepo->load($orderIds[0]);
         }
         
         if ($saveOrder !== null) {
-            if (self::getHelp()->getMageVersion > "1.4.2.0") {
+            if ($this->helper->getMageVersion > "1.4.2.0") {
                 $billingAddress = $saveOrder->getbillingAddress();
             } else {
                 $billingAddress = $saveOrder->getBillingAddress();
@@ -234,7 +224,7 @@ class Events implements ObserverInterface
             foreach ($saveOrder->getAllVisibleItems() as $item) {
                 $products[] = [
                     'product_id' => $item->getProductId(),
-                    'price' => self::getHelp()->getFunc->digit2($item->getFinalPriceInclTax() > 0 ? $item->getPriceInclTax() : $item->getPriceInclTax()),
+                    'price' => $this->helper->getFunc->digit2($item->getFinalPriceInclTax() > 0 ? $item->getPriceInclTax() : $item->getPriceInclTax()),
                     'quantity' => (int) $item->getQtyOrdered(),
                     'variation_sku' => $item->getSku()
                 ];
@@ -245,49 +235,49 @@ class Events implements ObserverInterface
                 $couponCode = '';
             }
     
-            self::$eventData = [
+            $this->eventData = [
                 "number" => $saveOrder->getIncrementId(),
                 "email_address" => $billingAddress->getEmail(),
-                "phone" => self::getHelp()->getFunc->validateTelephone($billingAddress->getTelephone()),
+                "phone" => $this->helper->getFunc->validateTelephone($billingAddress->getTelephone()),
                 "firstname" => $billingAddress->getFirstname(),
                 "lastname" => $billingAddress->getLastname(),
                 "city" => $billingAddress->getCity(),
                 "county" => $billingAddress->getRegion(),
                 "address" => implode(" ", $billingAddress->getStreet()),
-                "discount_value" => self::getHelp()->getFunc->digit2($saveOrder->getDiscountAmount()),
+                "discount_value" => $this->helper->getFunc->digit2($saveOrder->getDiscountAmount()),
                 "discount_code" => $couponCode,
-                "shipping" => self::getHelp()->getFunc->digit2($saveOrder->getShippingInclTax()),
-                "tax" => self::getHelp()->getFunc->digit2($saveOrder->getTaxAmount()),// ->getFullTaxInfo()
-                "total_value" => self::getHelp()->getFunc->digit2($saveOrder->getGrandTotal()),
+                "shipping" => $this->helper->getFunc->digit2($saveOrder->getShippingInclTax()),
+                "tax" => $this->helper->getFunc->digit2($saveOrder->getTaxAmount()),// ->getFullTaxInfo()
+                "total_value" => $this->helper->getFunc->digit2($saveOrder->getGrandTotal()),
                 "products" => $products
             ];
 
             if (self::sendApi) {
-                self::getHelp()->getApi->send("save_order", self::$eventData);
+                $this->helper->getApi->send("save_order", $this->eventData);
             }
             
-            self::MktrSessionSet();
+            $this->mktrSessionSet();
         }
     }
 
     /** @noinspection PhpUnused */
     public function emailAndPhone()
     {
-        $object = self::$observer->getObject();
+        $object = $this->observer->getObject();
 
         /** TODO: Magento 2 - Subscriber - Magento 1 - Mage_Newsletter_Model_Subscriber*/
         /** @noinspection PhpUndefinedClassInspection */
         if ($object instanceof Subscriber) {
             if ($object->getEmail() === null) {
-                $object = self::getHelp()->getCustomerSession->getCustomer();
+                $object = $this->helper->getCustomerSession->getCustomer();
             }
             
-            $tApi = self::getHelp()->getSessionName."Api";
-            self::getHelp()->getSession->{"set".$tApi}([ 'Sub' => true ]);
+            $tApi = $this->helper->getSessionName."Api";
+            $this->helper->getSession->{"set".$tApi}([ 'Sub' => true ]);
 
             if (!$object->getDefaultShipping()) {
-                $object1 = self::getHelp()->getCustomerData
-                    ->setWebsiteId(self::getHelp()->getWebsite->getId())
+                $object1 = $this->helper->getCustomerData
+                    ->setWebsiteId($this->helper->getWebsite->getId())
                     ->loadByEmail($object->getEmail());
                 if ($object1->getEmail() !== null) {
                     $object = $object1;
@@ -300,16 +290,16 @@ class Events implements ObserverInterface
     /** @noinspection PhpUnused */
     public function Register()
     {
-        $fName = self::getHelp()->getSessionName."Api";
-        self::getHelp()->getSession->{"set".$fName}([ 'Sub' => self::getHelp()->getRequest->getParam('is_subscribed') ]);
+        $fName = $this->helper->getSessionName."Api";
+        $this->helper->getSession->{"set".$fName}([ 'Sub' => $this->helper->getRequest->getParam('is_subscribed') ]);
         
-        $customer = self::$observer->getCustomer();
+        $customer = $this->observer->getCustomer();
         $this->EmailSet($customer);
     }
     /** @noinspection PhpUnused */
     public function RegisterOrLogIn()
     {
-        $customer = self::$observer->getCustomer();
+        $customer = $this->observer->getCustomer();
 
         $this->EmailSet($customer);
     }
@@ -331,25 +321,25 @@ class Events implements ObserverInterface
         }
 
         if ($object->getDefaultShipping()) {
-            $customerAddress = self::getHelp()->getCustomerAddress->load($object->getDefaultShipping());
-            $emailData['phone'] = self::getHelp()->getFunc->validateTelephone($customerAddress->getTelephone());
+            $customerAddress = $this->helper->getCustomerAddress->load($object->getDefaultShipping());
+            $emailData['phone'] = $this->helper->getFunc->validateTelephone($customerAddress->getTelephone());
         }
         
-        self::$eventName = "setEmail";
+        $this->eventName = "setEmail";
 
-        self::$eventData = $emailData;
+        $this->eventData = $emailData;
 
-        self::MktrSessionSet();
+        $this->mktrSessionSet();
     }
 
     /** @noinspection PhpUnused */
     public function SaveButton()
     {
-        $module = self::getHelp()->getFileSystem->setWorkDirectory();
+        $module = $this->helper->getFileSystem->setWorkDirectory();
 
-        if (self::getHelp()->getConfig->getPushStatus() != 0) {
-            $module->writeFile("firebase-config.js", self::getHelp()->getConfig->getFireBase());
-            $module->writeFile("firebase-messaging-sw.js", self::getHelp()->getConfig->getFireBaseMessaging());
+        if ($this->helper->getConfig->getPushStatus() != 0) {
+            $module->writeFile("firebase-config.js", $this->helper->getConfig->getFireBase());
+            $module->writeFile("firebase-messaging-sw.js", $this->helper->getConfig->getFireBaseMessaging());
         } else {
             $module->deleteFile("firebase-config.js");
             $module->deleteFile("firebase-messaging-sw.js");
@@ -359,7 +349,7 @@ class Events implements ObserverInterface
     /** @noinspection PhpUnused */
     public function UpdateOrder()
     {
-        $o = self::$observer->getEvent()->getOrder();
+        $o = $this->observer->getEvent()->getOrder();
         $status = $o->getState();
 
         $send = [
@@ -367,7 +357,7 @@ class Events implements ObserverInterface
             'order_status' => $status
         ];
 
-        self::getHelp()->getApi->send("update_order_status", $send, false);
+        $this->helper->getApi->send("update_order_status", $send, false);
     }
 
     /** @noinspection PhpUnused */
@@ -434,12 +424,12 @@ class Events implements ObserverInterface
     }
 
     /** @noinspection PhpReturnValueOfMethodIsNeverUsedInspection */
-    private static function MktrSessionSet()
+    private function mktrSessionSet()
     {
         /* TODO : UPDATE */
-        $fName = self::getHelp()->getSessionName.self::$eventName;
+        $fName = $this->helper->getSessionName.$this->eventName;
 
-        self::getHelp()->getSession->{"set".$fName}(self::$eventData);
-        return self::$eventAction;
+        $this->helper->getSession->{"set".$fName}($this->eventData);
+        return $this->eventAction;
     }
 }

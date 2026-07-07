@@ -10,72 +10,84 @@
 
 namespace Mktr\Tracker\Model\Option;
 
+use Magento\Framework\Api\SearchCriteriaBuilder;
+use Magento\Framework\Module\Manager as ModuleManager;
+use Magento\InventoryApi\Api\SourceRepositoryInterface;
+
 class StockSource implements \Magento\Framework\Option\ArrayInterface
 {
-    private static $ins = [
-        "MSI" => null,
-        "Criteria" => null
-    ];
+    /**
+     * @var SourceRepositoryInterface
+     */
+    private $sourceRepository;
 
-    private static $MSI = null;
-    private static $list = null;
+    /**
+     * @var SearchCriteriaBuilder
+     */
+    private $searchCriteriaBuilder;
 
-    public static function getMSI()
+    /**
+     * @var ModuleManager
+     */
+    private $moduleManager;
+
+    /**
+     * @var bool|null
+     */
+    private $msiEnabled = null;
+
+    /**
+     * @var array|null
+     */
+    private $list = null;
+
+    public function __construct(
+        SourceRepositoryInterface $sourceRepository,
+        SearchCriteriaBuilder $searchCriteriaBuilder,
+        ModuleManager $moduleManager
+    ) {
+        $this->sourceRepository = $sourceRepository;
+        $this->searchCriteriaBuilder = $searchCriteriaBuilder;
+        $this->moduleManager = $moduleManager;
+    }
+
+    private function checkMSI()
     {
-        if (self::$ins["MSI"] == null) {
-            self::$ins["MSI"] = \Magento\Framework\App\ObjectManager::getInstance()->get('\Magento\InventoryApi\Api\SourceRepositoryInterface');
+        if ($this->msiEnabled === null) {
+            $this->msiEnabled = $this->moduleManager->isEnabled('Magento_Inventory');
         }
-        return self::$ins["MSI"];
+        return $this->msiEnabled;
     }
 
-    public static function getCriteria()
+    private function getList($type = 0)
     {
-        if (self::$ins["Criteria"] == null) {
-            self::$ins["Criteria"] = \Magento\Framework\App\ObjectManager::getInstance()->get('\Magento\Framework\Api\SearchCriteriaBuilder')->create();
-        }
-        return self::$ins["Criteria"];
-    }
-    
-    public static function checkMSI () {
-        if (self::$MSI === null) {
-            if (\Magento\Framework\App\ObjectManager::getInstance()->get("\Magento\Framework\Module\Manager")->isEnabled('Magento_Inventory')) {
-                self::$MSI = true;
-            } else {
-                self::$MSI = false;
-            }
-        }
-        return self::$MSI;
-    }
-
-    public static function getList ($type = 0) {
-        if (self::$list === null) {
-            self::$list = [
-                [ 'all' => __('All') ],
-                [ [ 'value' => 'all', 'label' => __('All') ] ]
+        if ($this->list === null) {
+            $this->list = [
+                ['all' => __('All')],
+                [['value' => 'all', 'label' => __('All')]]
             ];
-            if (self::checkMSI()) {
-                foreach (self::getMSI()->getList(self::getCriteria())->getItems() as $v) {
-                    self::$list[0][$v['source_code']] = __($v['name']);
-                    self::$list[1][] = [ 'value' => $v['source_code'], 'label' => __($v['name']) ];
+            if ($this->checkMSI()) {
+                foreach ($this->sourceRepository->getList($this->searchCriteriaBuilder->create())->getItems() as $v) {
+                    $this->list[0][$v['source_code']] = __($v['name']);
+                    $this->list[1][] = ['value' => $v['source_code'], 'label' => __($v['name'])];
                 }
             }
         }
-        return self::$list[$type];
+        return $this->list[$type];
     }
+
     /**
-     * Options getter
-     *
      * @return array
      * @noinspection PhpUnused
      */
     public function toOptionArray(): array
     {
-        return self::getList(1);
+        return $this->getList(1);
     }
 
     /** @noinspection PhpUnused */
     public function toArray(): array
     {
-        return self::getList(0);
+        return $this->getList(0);
     }
 }

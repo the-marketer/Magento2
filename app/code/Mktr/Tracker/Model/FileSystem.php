@@ -12,79 +12,83 @@
 namespace Mktr\Tracker\Model;
 
 use Magento\Framework\App\Filesystem\DirectoryList;
-use Mktr\Tracker\Helper\Data;
+use Magento\Framework\Filesystem as MagentoFilesystem;
 
 class FileSystem
 {
-    private static $path = null;
-    private static $cons = null;
+    /**
+     * @var MagentoFilesystem
+     */
+    private $filesystem;
 
-    private static $lastPath = null;
+    /**
+     * @var string|null
+     */
+    private $path = null;
 
-    private static $ins = [
-        "Help" => null,
-        "fileSystem" => null,
-        "ModulePath" => null,
-        "status" => []
-    ];
+    /**
+     * @var string|null
+     */
+    private $lastPath = null;
 
-    public function __construct(Data $help)
+    /**
+     * @var string|null
+     */
+    private $modulePath = null;
+
+    /**
+     * @var array
+     */
+    private $status = [];
+
+    public function __construct(MagentoFilesystem $filesystem)
     {
-        self::$ins['Help'] = $help;
-        self::$cons = $this;
+        $this->filesystem = $filesystem;
     }
 
-    private static function getModulePath()
+    private function getModulePath()
     {
-        if (self::$ins['ModulePath'] === null) {
-            self::$ins['ModulePath'] = dirname(__DIR__). "/";
+        if ($this->modulePath === null) {
+            $this->modulePath = dirname(__DIR__) . "/";
         }
-        return self::$ins['ModulePath'];
-    }
-
-    public static function getFileSystem()
-    {
-        if (self::$ins['fileSystem'] === null) {
-            self::$ins['fileSystem'] = \Magento\Framework\App\ObjectManager::getInstance()->create('\Magento\Framework\Filesystem');
-        }
-        return self::$ins['fileSystem'];
+        return $this->modulePath;
     }
 
     /** @noinspection PhpMissingReturnTypeInspection */
-    public static function setWorkDirectory($name = 'base')
+    public function setWorkDirectory($name = 'base')
     {
         if ($name == 'base') {
-            self::$path = self::getFileSystem()->getDirectoryWrite(DirectoryList::PUB)->getAbsolutePath();
+            $this->path = $this->filesystem->getDirectoryWrite(DirectoryList::PUB)->getAbsolutePath();
         } else {
-            self::$path = self::getModulePath() . $name . "/";
+            $this->path = $this->getModulePath() . $name . "/";
         }
-        return self::$cons;
+        return $this;
     }
 
     /** @noinspection PhpMissingReturnTypeInspection */
-    public static function writeFile($fName, $content, $mode = 'w+')
+    public function writeFile($fName, $content, $mode = 'w+')
     {
-        $file = fopen(self::$path.$fName, $mode);
+        $file = fopen($this->path . $fName, $mode);
         fwrite($file, $content);
         fclose($file);
 
-        self::$ins['status'][] = [
-            'path' => self::$path,
+        $this->status[] = [
+            'path' => $this->path,
             'fileName' => $fName,
-            'fullPath' => self::$path.$fName,
+            'fullPath' => $this->path . $fName,
             'status' => true
         ];
 
-        return self::$cons;
+        return $this;
     }
 
-    public static function rFile($fName, $mode = "rb")
+    public function rFile($fName, $mode = "rb")
     {
-        self::$lastPath = self::$path . $fName;
-        if (file_exists(self::$lastPath)) {
-            $file = fopen(self::$lastPath, $mode);
+        $this->lastPath = $this->path . $fName;
+        if (file_exists($this->lastPath)) {
+            $file = fopen($this->lastPath, $mode);
 
-            $contents = fread($file, filesize(self::$lastPath));
+            $contents = fread($file, filesize($this->lastPath));
 
             fclose($file);
         } else {
@@ -94,43 +98,43 @@ class FileSystem
         return $contents;
     }
 
-    public static function readFile($fName, $mode = "rb")
+    public function readFile($fName, $mode = "rb")
     {
-        self::$lastPath = self::$path . $fName;
-        $file = fopen(self::$lastPath, $mode);
+        $this->lastPath = $this->path . $fName;
+        $file = fopen($this->lastPath, $mode);
 
-        $contents = fread($file, filesize(self::$lastPath));
+        $contents = fread($file, filesize($this->lastPath));
 
         fclose($file);
 
         return $contents;
     }
 
-    public static function isExists($fName)
+    public function isExists($fName)
     {
-        return file_exists(self::$path . $fName);
+        return file_exists($this->path . $fName);
     }
 
-    public static function deleteFile($fName)
+    public function deleteFile($fName)
     {
-        if (file_exists(self::$path . $fName)) {
-            unlink(self::$path . $fName);
+        if (file_exists($this->path . $fName)) {
+            unlink($this->path . $fName);
         }
         return true;
     }
 
-    public static function getPath()
+    public function getPath()
     {
-        return self::$path;
+        return $this->path;
     }
 
-    public static function getLastPath()
+    public function getLastPath()
     {
-        return self::$lastPath;
+        return $this->lastPath;
     }
 
-    public static function getStatus()
+    public function getStatus()
     {
-        return self::$ins['status'];
+        return $this->status;
     }
 }
