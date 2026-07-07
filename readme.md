@@ -22,8 +22,11 @@ sh mktr/mktr.sh uninstall php7.4 # if you have multiple php versions you can add
 + Param "store"
 + remove vsprintf
 
++ API authentication uses the Authorization header:
++ Authorization: Bearer {REST_KEY}
+
 + Use as
-+ /mktr/api/Feed?key={REST_KEY}&store={STORE_ID|STORE_CODE}
++ /mktr/api/Feed?store={STORE_ID|STORE_CODE}
 
 + Magento 2 Default
-+ /mktr/api/Feed?key={REST_KEY}&___store={STORE_CODE}
++ /mktr/api/Feed?___store={STORE_CODE}
