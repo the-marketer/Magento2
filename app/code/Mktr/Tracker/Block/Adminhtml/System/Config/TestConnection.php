@@ -9,14 +9,13 @@
 
 namespace Mktr\Tracker\Block\Adminhtml\System\Config;
 
+use Magento\Backend\Block\Widget\Button;
 use Magento\Backend\Block\Template\Context;
 use Magento\Config\Block\System\Config\Form\Field;
 use Magento\Framework\Data\Form\Element\AbstractElement;
 
 class TestConnection extends Field
 {
-    protected $_template = 'Mktr_Tracker::system/config/test_connection.phtml';
-
     public function __construct(Context $context, array $data = [])
     {
         parent::__construct($context, $data);
@@ -30,12 +29,12 @@ class TestConnection extends Field
 
     protected function _getElementHtml(AbstractElement $element)
     {
-        return $this->_toHtml();
+        return $this->getButtonHtml();
     }
 
     public function getButtonHtml()
     {
-        return $this->getLayout()->createBlock('Magento\Backend\Block\Widget\Button')->setData([
+        return $this->getLayout()->createBlock(Button::class)->setData([
             'id' => 'mktr_test_connection_button',
             'label' => __('Test connection'),
             'onclick' => "setLocation('{$this->getTestConnectionUrl()}')"
