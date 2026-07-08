@@ -10,6 +10,7 @@
 
 namespace Mktr\Tracker\Block;
 
+use Magento\Framework\App\Request\Http as HttpRequest;
 use Magento\Framework\View\Element\Template;
 use Magento\Framework\View\Element\Template\Context;
 use Mktr\Tracker\Helper\Data;
@@ -37,49 +38,40 @@ class Loader extends Template
         "catalogsearch_result_index" => "__sm__search"
     ];
 
-    private static $ins = [
-        "Help" => null,
-        "Config" => null
-    ];
+    /**
+     * @var Data
+     */
+    private $helper;
 
-    private static $actionName = null;
+    /**
+     * @var HttpRequest
+     */
+    private $request;
 
-    public function __construct(Context $context, Data $help, array $data = [])
+    public function __construct(Context $context, Data $helper, HttpRequest $request, array $data = [])
     {
-        self::$ins['Help'] = $help;
+        $this->helper = $helper;
+        $this->request = $request;
         parent::__construct($context, $data);
     }
 
-    public static function getEventName()
+    private function getEventName()
     {
-        return self::actions[self::actionName()] ?? null;
+        return self::actions[$this->getActionName()] ?? null;
     }
 
-    public static function actionName()
+    private function getActionName()
     {
-        if (self::$actionName === null) {   /** TODO: Magento 2 */
-            self::$actionName = self::getHelp()->getRequest->getFullActionName();
-        }
-        return self::$actionName;
+        return $this->request->getFullActionName();
     }
 
-    /** TODO: Magento 2 */
-    public static function getHelp()
-    {
-        if (self::$ins["Help"] == null) {
-            self::$ins["Help"] = \Magento\Framework\App\ObjectManager::getInstance()->get('\Mktr\Tracker\Helper\Data');
-        }
-        return self::$ins["Help"];
-    }
-
-    /** @noinspection PhpUnused */
     protected function _toHtml(): string
     {
-        if (self::getHelp()->getConfig->getStatus() === 0 || empty(self::getHelp()->getConfig->getKey())) {
+        if ($this->helper->getConfig->getStatus() === 0 || empty($this->helper->getConfig->getKey())) {
             return '';
         }
-        
-        $lines = [ 'window.mktr = window.mktr || { pending: [], retryCount: 0, version: "1.2.3" };', 'window.dataLayer = window.dataLayer || [];'];
+
+        $lines = ['window.mktr = window.mktr || { pending: [], retryCount: 0, version: "1.2.3" };', 'window.dataLayer = window.dataLayer || [];'];
         $lines[] = 'window.mktr.debug = function () { if (typeof dataLayer != "undefined") { for (let i of dataLayer) { console.log("Mktr", "Google", i); } } };';
         $lines[] = 'window.mktr.eventPush = function (data = {}) {
             if (typeof dataLayer != "undefined") { dataLayer.push(data); } else {
@@ -87,10 +79,10 @@ class Loader extends Template
             }
         }';
 
-        $baseURL = self::getHelp()->getBaseUrl;
+        $baseURL = $this->helper->getBaseUrl;
 
         $lines[] = 'window.mktr.loadScript = function (mktrPage = null) {
-            if (mktrPage !== null) { let time = (new Date()).getTime(); let url = "'.$baseURL.'mktr/api/"+mktrPage;
+            if (mktrPage !== null) { let time = (new Date()).getTime(); let url = "' . $baseURL . 'mktr/api/"+mktrPage;
                 let add = document.createElement("script"); add.async = true; add.src = url + ( url.includes("?") ? "&mk=" : "?mk=") + time;
                 let s = document.getElementsByTagName("script")[0]; s.parentNode.insertBefore(add,s); } }';
         $lines[] = 'window.mktr.loadEvents = function () { window.mktr.loadScript("LoadEvents"); };';
@@ -102,14 +94,12 @@ class Loader extends Template
             }
         };';
 
-        $lines[] = vsprintf(self::getHelp()->getConfig->getLoader(), [self::getHelp()->getConfig->getKey()]);
+        $lines[] = vsprintf($this->helper->getConfig->getLoader(), [$this->helper->getConfig->getKey()]);
 
-        $loadJS = [];
-
-        $eventName = self::getEventName();
+        $eventName = $this->getEventName();
 
         if ($eventName != null) {
-            $lines[] = "window.mktr.eventPush(".self::getHelp()->getManager->getEvent($eventName)->toJson().");";
+            $lines[] = "window.mktr.eventPush(" . $this->helper->getManager->getEvent($eventName)->toJson() . ");";
         }
 
         $lines[] = "
@@ -125,24 +115,19 @@ class Loader extends Template
         }
         setTimeout(window.mktr.loadEvents, 1000);
         ";
-        $selector = self::getHelp()->getConfig->getSelectors();
-        
+        $selector = $this->helper->getConfig->getSelectors();
+
         if (!empty($selector)) {
             $lines[] = 'window.addEventListener("click", function(event){ 
-                let selector1 = "' . str_replace('"', '\"', $selector) . '";
+                let selector1 = ' . json_encode($selector) . ';
                 let closestElem1 = event.target.closest(selector1);
                 let closestElem2 = event.target.matches(selector1);
                 if (closestElem1 || closestElem2) { setTimeout(window.mktr.loadEvents, 3000); }
             });';
         }
 
-        // $lines[] = 'window.mktr.debug = function () { if (typeof dataLayer != undefined) { for (let i of dataLayer) { console.log("Mktr","Google",i); } } };';
-
-        // $lines[] = 'console.log("Mktr","ActionName","'.self::actionName().'");';
-
-        $wh =  [self::getHelp()->getSpace(), implode(self::getHelp()->getSpace(), $lines)];
-        $rep = ["%space%","%implode%"];
-        /** @noinspection JSUnresolvedVariable */
+        $wh = [$this->helper->getSpace(), implode($this->helper->getSpace(), $lines)];
+        $rep = ["%space%", "%implode%"];
         return str_replace($rep, $wh, '<!-- Mktr Script Start -->%space%<script type="text/javascript">%space%%implode%%space%</script>%space%<!-- Mktr Script END -->');
     }
 }

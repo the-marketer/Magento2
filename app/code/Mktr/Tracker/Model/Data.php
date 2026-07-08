@@ -12,74 +12,78 @@ namespace Mktr\Tracker\Model;
 
 class Data
 {
-    private static $ins = [
-        "Help" => null,
-        "Config" => null
-    ];
+    /**
+     * @var FileSystem
+     */
+    private $fileSystem;
 
-    private static $data;
-    private static $storage = null;
+    /**
+     * @var Func
+     */
+    private $func;
 
-    public function __construct()
+    /**
+     * @var FileSystem
+     */
+    private $storage;
+
+    /**
+     * @var array
+     */
+    private $data = [];
+
+    public function __construct(FileSystem $fileSystem, Func $func)
     {
-        self::$storage = self::getHelp()->getFileSystem->setWorkDirectory("Storage");
-        $data = self::$storage->rFile("data.json");
-        if ($data !== null) {
-            self::$data = json_decode($data, true);
+        $this->fileSystem = $fileSystem;
+        $this->func = $func;
+        $this->storage = $this->fileSystem->setWorkDirectory("Storage");
+        $rawData = $this->storage->rFile("data.json");
+        if ($rawData !== null) {
+            $this->data = json_decode($rawData, true);
         } else {
-            self::$data = [];
+            $this->data = [];
         }
-    }
-
-    /** TODO: Magento 2 */
-    public static function getHelp()
-    {
-        if (self::$ins["Help"] == null) {
-            self::$ins["Help"] = \Magento\Framework\App\ObjectManager::getInstance()
-                ->get('\Mktr\Tracker\Helper\Data');
-        }
-        return self::$ins["Help"];
     }
 
     public function __get($name)
     {
-        if (!isset(self::$data[$name])) {
+        if (!isset($this->data[$name])) {
             if ($name == 'update_feed' || $name == 'update_review' || $name == 'update_subscribe') {
-                self::$data[$name] = 0;
+                $this->data[$name] = 0;
             } else {
-                self::$data[$name] = null;
+                $this->data[$name] = null;
             }
         }
 
-        return self::$data[$name];
+        return $this->data[$name];
     }
 
     public function __set($name, $value)
     {
-        self::$data[$name] = $value;
+        $this->data[$name] = $value;
     }
 
-    public static function getData()
+    public function getData()
     {
-        return self::$data;
+        return $this->data;
     }
 
-    public static function addTo($name, $value, $key = null)
+    public function addTo($name, $value, $key = null)
     {
         if ($key === null) {
-            self::$data[$name][] = $value;
+            $this->data[$name][] = $value;
         } else {
-            self::$data[$name][$key] = $value;
+            $this->data[$name][$key] = $value;
         }
     }
 
-    public static function del($name)
+    public function del($name)
     {
-        unset(self::$data[$name]);
+        unset($this->data[$name]);
     }
 
-    public static function save()
+    public function save()
     {
-        self::$storage->writeFile("data.json", self::getHelp()->getFunc->toJson(self::$data));
+        $this->storage->writeFile("data.json", $this->func->toJson($this->data));
     }
 }

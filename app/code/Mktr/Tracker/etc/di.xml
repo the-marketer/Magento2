@@ -11,5 +11,18 @@
 -->
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
-    <preference for="Magento\Newsletter\Model\Subscriber" type="Mktr\Tracker\Model\Newsletter" />
+    <preference for="Mktr\Tracker\Api\SourceItemsBySkuResolverInterface"
+                type="Mktr\Tracker\Model\Inventory\SourceItemsBySkuResolver"/>
+
+    <type name="Mktr\Tracker\Model\Inventory\SourceItemsBySkuResolver">
+        <arguments>
+            <argument name="sourceItemsBySku" xsi:type="object">Magento\InventoryApi\Api\GetSourceItemsBySkuInterface\Proxy</argument>
+        </arguments>
+    </type>
+
+    <type name="Magento\Newsletter\Model\Subscriber">
+        <plugin name="mktr_tracker_subscriber_opt_in"
+                type="Mktr\Tracker\Plugin\Newsletter\SubscriberPlugin"
+                sortOrder="10"/>
+    </type>
 </config>

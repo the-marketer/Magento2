@@ -10,56 +10,65 @@
 
 namespace Mktr\Tracker\Model\Pages;
 
+use Magento\Newsletter\Model\SubscriberFactory;
+use Magento\Store\Api\StoreRepositoryInterface;
+use Mktr\Tracker\Helper\Data;
+use Mktr\Tracker\Model\Config;
+
 class Subscribes
 {
-    private static $ins = [
-        "Help" => null,
-        "Config" => null,
-        "Subscriber" => null
-    ];
+    private const DEFAULT_INTERVAL_HOURS = 24;
 
-    private static $error = null;
+    /**
+     * @var Data
+     */
+    private $helper;
 
-    private static function status()
-    {
-        return self::$error == null;
+    /**
+     * @var Config
+     */
+    private $config;
+
+    /**
+     * @var StoreRepositoryInterface
+     */
+    private $storeRepository;
+
+    /**
+     * @var SubscriberFactory
+     */
+    private $subscriberFactory;
+
+    /**
+     * @var array|null
+     */
+    private $storeList = null;
+
+    public function __construct(
+        Data $helper,
+        Config $config,
+        StoreRepositoryInterface $storeRepository,
+        SubscriberFactory $subscriberFactory
+    ) {
+        $this->helper = $helper;
+        $this->config = $config;
+        $this->storeRepository = $storeRepository;
+        $this->subscriberFactory = $subscriberFactory;
     }
 
-    /** TODO: Magento 2 */
-    public static function getHelp()
+    public function getStoreList()
     {
-        if (self::$ins["Help"] == null) {
-            self::$ins["Help"] = \Magento\Framework\App\ObjectManager::getInstance()->get('\Mktr\Tracker\Helper\Data');
-        }
-        return self::$ins["Help"];
-    }
-
-    /** TODO: Magento 2 */
-    public static function getStoreList()
-    {
-        if (self::$ins["Config"] == null) {
-            self::$ins["Config"] = [];
-            foreach (\Magento\Framework\App\ObjectManager::getInstance()
-                         ->get('\Magento\Store\Api\StoreRepositoryInterface')
-                         ->getList() as $k) {
-                if (self::getHelp()->getConfig->getStoreValue("status", $k->getId()) &&
-                    self::getHelp()->getConfig->getStoreValue("rest_key", $k->getId()) === self::getHelp()->getConfig->getRestKey()) {
-                    self::$ins["Config"][] = $k->getId();
+        if ($this->storeList === null) {
+            $this->storeList = [];
+            foreach ($this->storeRepository->getList() as $store) {
+                if ($this->config->getStoreValue("status", $store->getId()) &&
+                    $this->config->getStoreValue("rest_key", $store->getId()) === $this->config->getRestKey()) {
+                    $this->storeList[] = $store->getId();
                 }
             }
         }
-        return self::$ins["Config"];
+        return $this->storeList;
     }
-
-    public static function getSubscriber()
-    {
-        if (self::$ins["Subscriber"] == null) {
-            self::$ins["Subscriber"] = \Magento\Framework\App\ObjectManager::getInstance()->get('\Magento\Newsletter\Model\Subscriber');
-        }
-        return self::$ins["Subscriber"];
-    }
-
-    private const DEFAULT_INTERVAL_HOURS = 24;
 
     /**
      * @return array
@@ -84,8 +93,8 @@ class Subscribes
      */
     private function resolveDateRange()
     {
-        $paramDateFrom = self::getHelp()->getRequest->getParam("date_from");
-        $paramDateTo = self::getHelp()->getRequest->getParam("date_to");
+        $paramDateFrom = $this->helper->getRequest->getParam("date_from");
+        $paramDateTo = $this->helper->getRequest->getParam("date_to");
 
         if ($paramDateFrom !== null && $paramDateTo !== null) {
             return [
@@ -95,7 +104,7 @@ class Subscribes
         }
 
         $now = time();
-        $intervalHours = (int) self::getHelp()->getConfig->getUpdateSubscribe() ?: self::DEFAULT_INTERVAL_HOURS;
+        $intervalHours = (int) $this->config->getUpdateSubscribe() ?: self::DEFAULT_INTERVAL_HOURS;
 
         return [
             $now - ($intervalHours * 3600),
@@ -110,7 +119,7 @@ class Subscribes
      */
     private function fetchUnsubscribedEmails($dateFrom, $dateTo)
     {
-        $response = self::getHelp()->getApi->send(
+        $response = $this->helper->getApi->send(
             "unsubscribed_emails",
             ['date_from' => $dateFrom, 'date_to' => $dateTo],
             false
@@ -125,22 +134,8 @@ class Subscribes
      */
     private function processUnsubscribes($emails)
     {
-        $obj = \Magento\Framework\App\ObjectManager::getInstance();
-
         foreach ($emails as $email) {
-            $obj->get('\Magento\Newsletter\Model\Subscriber')->loadByEmail($email)->unsubscribe();
+            $this->subscriberFactory->create()->loadByEmail($email)->unsubscribe();
         }
-    }
-
-    /**
-     * @param \Magento\Newsletter\Model\Subscriber $subscriber
-     * @return bool
-     */
-    private function isSubscribed($subscriber)
-    {
-        $status = $subscriber->getStatus();
-
-        return $status !== null
-            && (int) $status === \Magento\Newsletter\Model\Subscriber::STATUS_SUBSCRIBED;
     }
 }

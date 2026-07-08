@@ -12,74 +12,58 @@ namespace Mktr\Tracker\Controller\Api;
 
 use Magento\Framework\App\Action\Action;
 use Magento\Framework\App\Action\Context;
+use Magento\Newsletter\Model\Subscriber;
 use Mktr\Tracker\Helper\Data;
 
 class setEmail extends Action
 {
-    // private static $cons = null;
+    /**
+     * @var Data
+     */
+    private $helper;
 
-    private static $ins = [
-        "Help" => null,
-        "Subscriber" => null
-    ];
+    /**
+     * @var Subscriber
+     */
+    private $subscriber;
 
-    public function __construct(Context $context, Data $help, \Magento\Newsletter\Model\Subscriber $subscriber)
+    public function __construct(Context $context, Data $helper, Subscriber $subscriber)
     {
         parent::__construct($context);
-        self::$ins['Subscriber'] = $subscriber;
-        self::$ins['Help'] = $help;
-        // self::$cons = $this;
-    }
-
-    /** TODO: Magento 2 */
-    public static function getHelp()
-    {
-        if (self::$ins["Help"] == null) {
-            self::$ins["Help"] = \Magento\Framework\App\ObjectManager::getInstance()->get('\Mktr\Tracker\Helper\Data');
-        }
-        return self::$ins["Help"];
-    }
-
-    /** TODO: Magento 2 */
-    public static function getSubscriber()
-    {
-        if (self::$ins["Subscriber"] == null) {
-            self::$ins["Subscriber"] = \Magento\Framework\App\ObjectManager::getInstance()->get('\Magento\Newsletter\Model\Subscriber');
-        }
-        return self::$ins["Subscriber"];
+        $this->helper = $helper;
+        $this->subscriber = $subscriber;
     }
 
     public function execute()
     {
         $lines = "";
-        $result = self::getHelp()->getPageRaw;
+        $result = $this->helper->getPageRaw;
         $result->setHeader('Content-type', 'application/javascript; charset=utf-8;', 1);
-        
-        $tApi = self::getHelp()->getSessionName."Api";
-        $fName = self::getHelp()->getSessionName.'setEmail';
 
-        $sApi = self::getHelp()->getSession->{"get".$tApi}();
+        $tApi = $this->helper->getSessionName . "Api";
+        $fName = $this->helper->getSessionName . 'setEmail';
+
+        $sApi = $this->helper->getSession->{"get" . $tApi}();
 
         if ($sApi !== null) {
-            $sEmail = self::getHelp()->getSession->{"get".$fName}();
+            $sEmail = $this->helper->getSession->{"get" . $fName}();
             if ($sEmail !== null) {
                 $skip = false;
-                /** @noinspection DuplicatedCode */
-                $nws = self::getSubscriber()->loadByEmail($sEmail["email_address"]);
-                $info = [ "email" => $sEmail['email_address'] ];
+                $nws = $this->subscriber->loadByEmail($sEmail["email_address"]);
+                $info = ["email" => $sEmail['email_address']];
 
-                if ($nws && $nws->getStatus() == \Magento\Newsletter\Model\Subscriber::STATUS_SUBSCRIBED) {
-                    $customer = self::getHelp()->getCustomerData
-                        ->setWebsiteId(self::getHelp()->getWebsite->getId())
+                if ($nws && $nws->getStatus() == Subscriber::STATUS_SUBSCRIBED) {
+                    $customer = $this->helper->getCustomerData
+                        ->setWebsiteId($this->helper->getWebsite->getId())
                         ->loadByEmail($sEmail['email_address']);
                     $customerAddressId = $customer->getDefaultShipping();
                     if ($customerAddressId) {
-                        $address = self::getHelp()->getCustomerAddress
+                        $address = $this->helper->getCustomerAddress
                             ->load($customer->getDefaultShipping());
 
                         $customerData = $address->getData();
                         if (isset($customerData['telephone'])) {
-                            $info["phone"] = self::getHelp()->getFunc->validateTelephone($customerData['telephone']);
+                            $info["phone"] = $this->helper->getFunc->validateTelephone($customerData['telephone']);
                         }
                     }
                     if ($customer->getName() !== null && $customer->getName() !== ' ') {
@@ -87,7 +71,7 @@ class setEmail extends Action
                     } elseif ($customer->getEmail() !== null && $customer->getFirstname() === null && $customer->getLastname() === null) {
                         $info["name"] = explode("@", $customer->getEmail())[0];
                     } elseif ($customer->getFirstname() !== null && $customer->getLastname() !== null) {
-                        $info["name"] = $customer->getFirstname().' '.$customer->getLastname();
+                        $info["name"] = $customer->getFirstname() . ' ' . $customer->getLastname();
                     } elseif ($customer->getFirstname() !== null) {
                         $info["name"] = $customer->getFirstname();
                     } elseif ($customer->getLastname() !== null) {
@@ -96,28 +80,25 @@ class setEmail extends Action
                         $info["name"] = explode("@", $sEmail['email_address'])[0];
                     }
 
-                    self::getHelp()->getApi->send("add_subscriber", $info);
+                    $this->helper->getApi->send("add_subscriber", $info);
                     $lines = "setEmailAdd";
                 } else {
                     $skip = true;
-                    // self::getHelp()->getApi->send("remove_subscriber", $info);
                     $lines = "setEmailRemove";
                 }
 
-                if ($skip === true || self::getHelp()->getApi->getStatus() == 200) {
-                    /* TODO setPhone */
-                    $fNameP = self::getHelp()->getSessionName . 'setPhone';
-                    if (self::getHelp()->getSession->{"get".$fNameP}()) {
-                        self::getHelp()->getSession->{"uns".$fNameP}();
+                if ($skip === true || $this->helper->getApi->getStatus() == 200) {
+                    $fNameP = $this->helper->getSessionName . 'setPhone';
+                    if ($this->helper->getSession->{"get" . $fNameP}()) {
+                        $this->helper->getSession->{"uns" . $fNameP}();
                     }
-                    self::getHelp()->getSession->{"uns".$fName}();
+                    $this->helper->getSession->{"uns" . $fName}();
                     if ($skip !== true) {
-                        /** TODO Magento 1 - setBody() | Magento 2 - setContents()  */
-                        $result->setContents("console.log('".$lines."', '".
-                            self::getHelp()->getApi->getStatus()."', '".
-                            self::getHelp()->getApi->getBody()."', '".
-                            self::getHelp()->getApi->getUrl()."','".
-                            json_encode(self::getHelp()->getApi->getParam())."');");
+                        $result->setContents("console.log('" . $lines . "', '" .
+                            $this->helper->getApi->getStatus() . "', '" .
+                            $this->helper->getApi->getBody() . "', '" .
+                            $this->helper->getApi->getUrl() . "','" .
+                            json_encode($this->helper->getApi->getParam()) . "');");
                     }
                 } else {
                     $result->setContents("console.log('null');");
@@ -125,15 +106,14 @@ class setEmail extends Action
             } else {
                 $result->setContents("console.log('null');");
             }
-            self::getHelp()->getSession->{"uns".$tApi}();
+            $this->helper->getSession->{"uns" . $tApi}();
         } else {
-            /* TODO setPhone */
-            $fNameP = self::getHelp()->getSessionName . 'setPhone';
+            $fNameP = $this->helper->getSessionName . 'setPhone';
 
-            if (self::getHelp()->getSession->{"get".$fNameP}()) {
-                self::getHelp()->getSession->{"uns".$fNameP}();
+            if ($this->helper->getSession->{"get" . $fNameP}()) {
+                $this->helper->getSession->{"uns" . $fNameP}();
             }
-            self::getHelp()->getSession->{"uns".$fName}();
+            $this->helper->getSession->{"uns" . $fName}();
 
             $result->setContents("console.log('null');");
         }

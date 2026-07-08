@@ -10,46 +10,60 @@
 
 namespace Mktr\Tracker\Model\Option;
 
-class HasMultipleSources extends \Magento\Framework\App\Config\Value
+use Magento\Framework\Api\SearchCriteriaBuilder;
+use Magento\Framework\App\Config\Value;
+use Magento\Framework\Module\Manager as ModuleManager;
+use Magento\InventoryApi\Api\SourceRepositoryInterface;
+
+class HasMultipleSources extends Value
 {
-
-    private static $ins = [
-        "MSI" => null,
-        "Criteria" => null
-    ];
-
-    private static $MSI = null;
-    
-    public static function getMSI()
-    {
-        if (self::$ins["MSI"] == null) {
-            self::$ins["MSI"] = \Magento\Framework\App\ObjectManager::getInstance()->get('\Magento\InventoryApi\Api\SourceRepositoryInterface');
-        }
-        return self::$ins["MSI"];
-    }
-
-    public static function getCriteria()
-    {
-        if (self::$ins["Criteria"] == null) {
-            self::$ins["Criteria"] = \Magento\Framework\App\ObjectManager::getInstance()->get('\Magento\Framework\Api\SearchCriteriaBuilder')->create();
-        }
-        return self::$ins["Criteria"];
-    }
-
-    public static function checkMSI () {
-        if (self::$MSI === null) {
-            if (\Magento\Framework\App\ObjectManager::getInstance()->get("\Magento\Framework\Module\Manager")->isEnabled('Magento_Inventory')) {
-                self::$MSI = 1;
-            } else {
-                self::$MSI = 0;
-            }
-        }
-       
-        return self::$MSI;
-    }
     /**
-     * Options getter
-     *
+     * @var SourceRepositoryInterface
+     */
+    private $sourceRepository;
+
+    /**
+     * @var SearchCriteriaBuilder
+     */
+    private $searchCriteriaBuilder;
+
+    /**
+     * @var ModuleManager
+     */
+    private $moduleManager;
+
+    /**
+     * @var int|null
+     */
+    private $msiEnabled = null;
+
+    public function __construct(
+        \Magento\Framework\Model\Context $context,
+        \Magento\Framework\Registry $registry,
+        \Magento\Framework\App\Config\ScopeConfigInterface $config,
+        \Magento\Framework\App\Cache\TypeListInterface $cacheTypeList,
+        SourceRepositoryInterface $sourceRepository,
+        SearchCriteriaBuilder $searchCriteriaBuilder,
+        ModuleManager $moduleManager,
+        \Magento\Framework\Model\ResourceModel\AbstractResource $resource = null,
+        \Magento\Framework\Data\Collection\AbstractDb $resourceCollection = null,
+        array $data = []
+    ) {
+        $this->sourceRepository = $sourceRepository;
+        $this->searchCriteriaBuilder = $searchCriteriaBuilder;
+        $this->moduleManager = $moduleManager;
+        parent::__construct($context, $registry, $config, $cacheTypeList, $resource, $resourceCollection, $data);
+    }
+
+    private function checkMSI()
+    {
+        if ($this->msiEnabled === null) {
+            $this->msiEnabled = $this->moduleManager->isEnabled('Magento_Inventory') ? 1 : 0;
+        }
+        return $this->msiEnabled;
+    }
+
+    /**
      * @return mixed
      * @noinspection PhpUnused
      */
@@ -57,8 +71,8 @@ class HasMultipleSources extends \Magento\Framework\App\Config\Value
     {
         $setMSI = 0;
 
-        if (self::checkMSI()) {
-            foreach (self::getMSI()->getList(self::getCriteria())->getItems() as $v) {
+        if ($this->checkMSI()) {
+            foreach ($this->sourceRepository->getList($this->searchCriteriaBuilder->create())->getItems() as $v) {
                 if ($v['source_code'] !== 'default') {
                     $setMSI = 1;
                     break;
@@ -71,15 +85,12 @@ class HasMultipleSources extends \Magento\Framework\App\Config\Value
         return parent::afterLoad();
     }
 
-    /**
-     * @return SetTimestamp
-     */
     public function beforeSave()
     {
-         $setMSI = 0;
+        $setMSI = 0;
 
-        if (self::checkMSI()) {
-            foreach (self::getMSI()->getList(self::getCriteria())->getItems() as $v) {
+        if ($this->checkMSI()) {
+            foreach ($this->sourceRepository->getList($this->searchCriteriaBuilder->create())->getItems() as $v) {
                 if ($v['source_code'] !== 'default') {
                     $setMSI = 1;
                     break;
