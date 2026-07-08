@@ -167,14 +167,33 @@ class TestConnection extends Action
 
         try {
             $endpoint = self::TRACKING_SCRIPT_URL . rawurlencode($trackingKey);
-            $referer = (string)$this->scopeConfig->getValue('web/unsecure/base_url', $scopeType, $scopeCode);
-            $this->prepareHttpClient();
-            if ($referer !== '') {
-                $this->httpClient->setOption(CURLOPT_REFERER, $referer);
+            $attempts = [];
+            $referers = $this->getTrackingScriptReferers($scopeType, $scopeCode);
+            $statusCode = 0;
+            $responseBody = '';
+            $successfulReferer = null;
+
+            foreach ($referers as $referer) {
+                $this->prepareHttpClient();
+                if ($referer !== '') {
+                    $this->httpClient->setOption(CURLOPT_REFERER, $referer);
+                }
+                $this->httpClient->setOption(CURLOPT_USERAGENT, 'Mozilla/5.0 TheMarketer Magento connection test');
+                $this->httpClient->get($endpoint);
+
+                $statusCode = $this->httpClient->getStatus();
+                $responseBody = substr(trim((string)$this->httpClient->getBody()), 0, 1000);
+                $attempts[] = [
+                    'referer' => $referer,
+                    'status_code' => $statusCode,
+                    'response_body' => $responseBody,
+                ];
+
+                if ($statusCode >= 200 && $statusCode < 300) {
+                    $successfulReferer = $referer;
+                    break;
+                }
             }
-            $this->httpClient->setOption(CURLOPT_USERAGENT, 'Mozilla/5.0 TheMarketer Magento connection test');
-            $this->httpClient->get($endpoint);
-            $statusCode = $this->httpClient->getStatus();
 
             $this->addResult(
                 $results,
@@ -186,9 +205,10 @@ class TestConnection extends Action
                 [
                     'endpoint' => $endpoint,
                     'method' => 'GET',
-                    'referer' => $referer,
+                    'referer' => $successfulReferer ?? ($referers[0] ?? ''),
                     'status_code' => $statusCode,
-                    'response_body' => substr(trim((string)$this->httpClient->getBody()), 0, 1000),
+                    'response_body' => $responseBody,
+                    'attempts' => $attempts,
                 ]
             );
         } catch (\Exception $e) {
@@ -200,6 +220,19 @@ class TestConnection extends Action
                 ['message' => $e->getMessage()]
             );
         }
+    }
+
+    private function getTrackingScriptReferers(string $scopeType, $scopeCode): array
+    {
+        $referers = [];
+        foreach (['web/secure/base_url', 'web/unsecure/base_url'] as $path) {
+            $referer = trim((string)$this->scopeConfig->getValue($path, $scopeType, $scopeCode));
+            if ($referer !== '' && !in_array($referer, $referers, true)) {
+                $referers[] = $referer;
+            }
+        }
+
+        return $referers ?: [''];
     }
 
     private function testStorage(array &$results): void
