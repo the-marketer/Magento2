@@ -33,7 +33,7 @@
                        showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Tracking key</label>
                     <depends>
-                        <field id="*/*/active">1</field>
+                        <field id="*/*/status">1</field>
                     </depends>
                 </field>
             </group>
