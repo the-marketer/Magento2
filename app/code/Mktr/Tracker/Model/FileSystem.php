@@ -12,14 +12,23 @@
 namespace Mktr\Tracker\Model;
 
 use Magento\Framework\App\Filesystem\DirectoryList;
+use Magento\Framework\Encryption\EncryptorInterface;
 use Magento\Framework\Filesystem as MagentoFilesystem;
+use Magento\Framework\Filesystem\Directory\WriteInterface;
 
 class FileSystem
 {
+    private const ENCRYPTED_PREFIX = 'mktrenc:';
+
     /**
      * @var MagentoFilesystem
      */
     private $filesystem;
+
+    /**
+     * @var EncryptorInterface
+     */
+    private $encryptor;
 
     /**
      * @var string|null
@@ -27,40 +36,71 @@ class FileSystem
     private $path = null;
 
     /**
-     * @var string|null
+     * @var WriteInterface|null
      */
-    private $lastPath = null;
-
-    /**
-     * @var string|null
-     */
-    private $modulePath = null;
+    private $directory = null;
 
     /**
      * @var array
      */
     private $status = [];
 
-    public function __construct(MagentoFilesystem $filesystem)
+    /**
+     * @var string|null
+     */
+    private $lastPath = null;
+
+    public function __construct(MagentoFilesystem $filesystem, EncryptorInterface $encryptor)
     {
         $this->filesystem = $filesystem;
+        $this->encryptor = $encryptor;
     }
 
-    private function getModulePath()
+    private function getFilePath($fileName): string
     {
-        if ($this->modulePath === null) {
-            $this->modulePath = dirname(__DIR__) . "/";
+        return $this->path . ltrim($fileName, '/');
+    }
+
+    private function shouldEncryptStorageContent(): bool
+    {
+        return $this->path !== null
+            && strpos($this->path, 'mktr_tracker/') === 0;
+    }
+
+    private function encodeContent($content): string
+    {
+        $content = (string) $content;
+
+        if (!$this->shouldEncryptStorageContent()) {
+            return $content;
         }
-        return $this->modulePath;
+
+        return self::ENCRYPTED_PREFIX . $this->encryptor->encrypt($content);
+    }
+
+    private function decodeContent(string $content): string
+    {
+        if (!$this->shouldEncryptStorageContent() || strpos($content, self::ENCRYPTED_PREFIX) !== 0) {
+            return $content;
+        }
+
+        try {
+            return (string) $this->encryptor->decrypt(substr($content, strlen(self::ENCRYPTED_PREFIX)));
+        } catch (\Exception $e) {
+            return '';
+        }
     }
 
     /** @noinspection PhpMissingReturnTypeInspection */
     public function setWorkDirectory($name = 'base')
     {
         if ($name == 'base') {
-            $this->path = $this->filesystem->getDirectoryWrite(DirectoryList::PUB)->getAbsolutePath();
+            $this->directory = $this->filesystem->getDirectoryWrite(DirectoryList::PUB);
+            $this->path = '';
         } else {
-            $this->path = $this->getModulePath() . $name . "/";
+            $this->directory = $this->filesystem->getDirectoryWrite(DirectoryList::VAR_DIR);
+            $this->path = 'mktr_tracker/' . trim($name, '/') . '/';
+            $this->directory->create($this->path);
         }
         return $this;
     }
@@ -68,14 +108,14 @@ class FileSystem
     /** @noinspection PhpMissingReturnTypeInspection */
     public function writeFile($fName, $content, $mode = 'w+')
     {
-        $file = fopen($this->path . $fName, $mode);
-        fwrite($file, $content);
-        fclose($file);
+        $filePath = $this->getFilePath($fName);
+        $this->directory->create(dirname($filePath));
+        $this->directory->writeFile($filePath, $this->encodeContent($content), $mode);
 
         $this->status[] = [
-            'path' => $this->path,
+            'path' => $this->getPath(),
             'fileName' => $fName,
-            'fullPath' => $this->path . $fName,
+            'fullPath' => $this->directory->getAbsolutePath($filePath),
             'status' => true
         ];
 
@@ -84,48 +124,71 @@ class FileSystem
 
     public function rFile($fName, $mode = "rb")
     {
-        $this->lastPath = $this->path . $fName;
-        if (file_exists($this->lastPath)) {
-            $file = fopen($this->lastPath, $mode);
+        $contents = $this->readFile($fName, $mode);
 
-            $contents = fread($file, filesize($this->lastPath));
-
-            fclose($file);
-        } else {
-            $contents = '';
-        }
-
-        return $contents;
+        return $contents === false ? '' : $contents;
     }
 
     public function readFile($fName, $mode = "rb")
     {
-        $this->lastPath = $this->path . $fName;
-        $file = fopen($this->lastPath, $mode);
+        $filePath = $this->getFilePath($fName);
+        $this->lastPath = $this->directory->getAbsolutePath($filePath);
 
-        $contents = fread($file, filesize($this->lastPath));
+        if (!$this->directory->isExist($filePath)) {
+            return false;
+        }
 
-        fclose($file);
-
-        return $contents;
+        return $this->decodeContent((string) $this->directory->readFile($filePath));
     }
 
     public function isExists($fName)
     {
-        return file_exists($this->path . $fName);
+        return $this->directory->isExist($this->getFilePath($fName));
     }
 
     public function deleteFile($fName)
     {
-        if (file_exists($this->path . $fName)) {
-            unlink($this->path . $fName);
+        $filePath = $this->getFilePath($fName);
+        if ($this->directory->isExist($filePath)) {
+            $this->directory->delete($filePath);
         }
         return true;
     }
 
+    public function isExpired($fName, int $ttl): bool
+    {
+        $filePath = $this->getFilePath($fName);
+
+        if ($ttl <= 0 || !$this->directory->isExist($filePath)) {
+            return false;
+        }
+
+        $stat = $this->directory->stat($filePath);
+
+        return isset($stat['mtime']) && (int) $stat['mtime'] < time() - $ttl;
+    }
+
+    public function deleteExpiredFiles(int $ttl): void
+    {
+        if ($ttl <= 0 || !$this->directory->isExist($this->path)) {
+            return;
+        }
+
+        foreach ($this->directory->read($this->path) as $filePath) {
+            if (!$this->directory->isFile($filePath)) {
+                continue;
+            }
+
+            $stat = $this->directory->stat($filePath);
+            if (isset($stat['mtime']) && (int) $stat['mtime'] < time() - $ttl) {
+                $this->directory->delete($filePath);
+            }
+        }
+    }
+
     public function getPath()
     {
-        return $this->path;
+        return $this->directory->getAbsolutePath($this->path);
     }
 
     public function getLastPath()

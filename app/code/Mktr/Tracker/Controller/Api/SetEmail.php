@@ -10,12 +10,14 @@
 
 namespace Mktr\Tracker\Controller\Api;
 
-use Magento\Framework\App\Action\Action;
-use Magento\Framework\App\Action\Context;
+use Magento\Framework\App\Action\HttpPostActionInterface;
+use Magento\Framework\App\CsrfAwareActionInterface;
+use Magento\Framework\App\Request\InvalidRequestException;
+use Magento\Framework\App\RequestInterface;
 use Magento\Newsletter\Model\Subscriber;
 use Mktr\Tracker\Helper\Data;
 
-class setEmail extends Action
+class SetEmail implements HttpPostActionInterface, CsrfAwareActionInterface
 {
     /**
      * @var Data
@@ -27,9 +29,8 @@ class setEmail extends Action
      */
     private $subscriber;
 
-    public function __construct(Context $context, Data $helper, Subscriber $subscriber)
+    public function __construct(Data $helper, Subscriber $subscriber)
     {
-        parent::__construct($context);
         $this->helper = $helper;
         $this->subscriber = $subscriber;
     }
@@ -94,11 +95,12 @@ class setEmail extends Action
                     }
                     $this->helper->getSession->{"uns" . $fName}();
                     if ($skip !== true) {
-                        $result->setContents("console.log('" . $lines . "', '" .
-                            $this->helper->getApi->getStatus() . "', '" .
-                            $this->helper->getApi->getBody() . "', '" .
-                            $this->helper->getApi->getUrl() . "','" .
-                            json_encode($this->helper->getApi->getParam()) . "');");
+                        $result->setContents(
+                            'console.log(' .
+                            json_encode($lines, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) . ', ' .
+                            json_encode((int) $this->helper->getApi->getStatus(), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) .
+                            ');'
+                        );
                     }
                 } else {
                     $result->setContents("console.log('null');");
@@ -118,5 +120,16 @@ class setEmail extends Action
             $result->setContents("console.log('null');");
         }
         return $result;
+    }
+
+    public function createCsrfValidationException(RequestInterface $request): ?InvalidRequestException
+    {
+        return null;
+    }
+
+    public function validateForCsrf(RequestInterface $request): ?bool
+    {
+        return $request->isPost()
+            && strtolower((string) $request->getHeader('X-Requested-With')) === 'xmlhttprequest';
     }
 }

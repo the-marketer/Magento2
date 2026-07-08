@@ -95,7 +95,7 @@ class Api
     /** @noinspection PhpUnused */
     public function getStatus()
     {
-        return $this->info["http_code"];
+        return $this->info["http_code"] ?? 0;
     }
 
     /** @noinspection PhpUnused */
@@ -111,6 +111,11 @@ class Api
 
     public function REST($url, $data = [], $post = true)
     {
+        $this->body = null;
+        $this->info = ['http_code' => 0];
+        $this->lastUrl = $url;
+        $this->requestType = $post;
+
         try {
             if (empty($this->config->getRestKey())) {
                 return $this;
@@ -120,8 +125,6 @@ class Api
                 'k' => $this->config->getRestKey(),
                 'u' => $this->config->getCustomerId()
             ], $data);
-
-            $this->requestType = $post;
 
             if ($this->requestType) {
                 $this->lastUrl = $url;
@@ -143,8 +146,6 @@ class Api
             $this->body = $this->httpClient->getBody();
             $this->info = ['http_code' => $this->httpClient->getStatus()];
         } catch (\Exception $e) {
-            $this->body = null;
-            $this->info = ['http_code' => 0];
             $this->logger->warning('TheMarketer API request failed', [
                 'url' => $url,
                 'message' => $e->getMessage()

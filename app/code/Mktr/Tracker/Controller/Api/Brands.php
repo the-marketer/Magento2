@@ -10,11 +10,10 @@
 
 namespace Mktr\Tracker\Controller\Api;
 
-use Magento\Framework\App\Action\Action;
-use Magento\Framework\App\Action\Context;
+use Magento\Framework\App\Action\HttpGetActionInterface;
 use Mktr\Tracker\Helper\Data;
 
-class Brands extends Action
+class Brands implements HttpGetActionInterface
 {
     /**
      * @var Data
@@ -24,9 +23,8 @@ class Brands extends Action
     private $fileName = "brands";
     private $secondName = "brand";
 
-    public function __construct(Context $context, Data $helper)
+    public function __construct(Data $helper)
     {
-        parent::__construct($context);
         $this->helper = $helper;
     }
 

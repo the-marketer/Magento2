@@ -10,12 +10,11 @@
 
 namespace Mktr\Tracker\Controller\Api;
 
-use Magento\Framework\App\Action\Action;
-use Magento\Framework\App\Action\Context;
+use Magento\Framework\App\Action\HttpGetActionInterface;
 use Mktr\Tracker\Helper\Data;
 use Mktr\Tracker\Model\DiscountCode;
 
-class CodeGenerator extends Action
+class CodeGenerator implements HttpGetActionInterface
 {
     /**
      * @var Data
@@ -27,9 +26,8 @@ class CodeGenerator extends Action
      */
     private $discountCode;
 
-    public function __construct(Context $context, Data $helper, DiscountCode $discountCode)
+    public function __construct(Data $helper, DiscountCode $discountCode)
     {
-        parent::__construct($context);
         $this->helper = $helper;
         $this->discountCode = $discountCode;
     }

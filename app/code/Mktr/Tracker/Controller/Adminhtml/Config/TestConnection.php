@@ -15,6 +15,8 @@ use Magento\Framework\Controller\Result\RedirectFactory;
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Store\Model\ScopeInterface;
 use Magento\Framework\HTTP\Client\Curl;
+use Mktr\Tracker\Model\Config as TrackerConfig;
+use Mktr\Tracker\Model\FileSystem as TrackerFileSystem;
 use Psr\Log\LoggerInterface;
 
 class TestConnection extends Action
@@ -26,6 +28,8 @@ class TestConnection extends Action
     private $redirectFactory;
     private $scopeConfig;
     private $httpClient;
+    private $trackerConfig;
+    private $trackerFileSystem;
     private $logger;
 
     public function __construct(
@@ -33,12 +37,16 @@ class TestConnection extends Action
         RedirectFactory $redirectFactory,
         ScopeConfigInterface $scopeConfig,
         Curl $httpClient,
+        TrackerConfig $trackerConfig,
+        TrackerFileSystem $trackerFileSystem,
         LoggerInterface $logger
     ) {
         parent::__construct($context);
         $this->redirectFactory = $redirectFactory;
         $this->scopeConfig = $scopeConfig;
         $this->httpClient = $httpClient;
+        $this->trackerConfig = $trackerConfig;
+        $this->trackerFileSystem = $trackerFileSystem;
         $this->logger = $logger;
     }
 
@@ -58,7 +66,9 @@ class TestConnection extends Action
             $redirectParams['website'] = $scopeCode;
         }
 
-        $trackingKey = $this->scopeConfig->getValue('mktr_tracker/tracker/tracking_key', $scopeType, $scopeCode);
+        $trackingKey = $this->trackerConfig->decryptSensitiveValue(
+            $this->scopeConfig->getValue('mktr_tracker/tracker/tracking_key', $scopeType, $scopeCode)
+        );
         $status = (int)$this->scopeConfig->getValue('mktr_tracker/tracker/status', $scopeType, $scopeCode);
         $pushStatus = (int)$this->scopeConfig->getValue('mktr_tracker/tracker/push_status', $scopeType, $scopeCode);
         $cronFeed = (int)$this->scopeConfig->getValue('mktr_tracker/tracker/cron_feed', $scopeType, $scopeCode);
@@ -67,8 +77,12 @@ class TestConnection extends Action
         $updateFeed = $this->scopeConfig->getValue('mktr_tracker/tracker/update_feed', $scopeType, $scopeCode);
         $updateReview = $this->scopeConfig->getValue('mktr_tracker/tracker/update_review', $scopeType, $scopeCode);
         $updateSubscribe = $this->scopeConfig->getValue('mktr_tracker/tracker/update_subscribe', $scopeType, $scopeCode);
-        $restKey = $this->scopeConfig->getValue('mktr_tracker/tracker/rest_key', $scopeType, $scopeCode);
-        $customerId = $this->scopeConfig->getValue('mktr_tracker/tracker/customer_id', $scopeType, $scopeCode);
+        $restKey = $this->trackerConfig->decryptSensitiveValue(
+            $this->scopeConfig->getValue('mktr_tracker/tracker/rest_key', $scopeType, $scopeCode)
+        );
+        $customerId = $this->trackerConfig->decryptSensitiveValue(
+            $this->scopeConfig->getValue('mktr_tracker/tracker/customer_id', $scopeType, $scopeCode)
+        );
         $results = [];
 
         if (empty($restKey) || empty($customerId)) {
@@ -203,7 +217,7 @@ class TestConnection extends Action
                     ? 'Tracking loader script is reachable.'
                     : 'Tracking loader script is not reachable.',
                 [
-                    'endpoint' => $endpoint,
+                    'endpoint' => self::TRACKING_SCRIPT_URL . '[redacted]',
                     'method' => 'GET',
                     'referer' => $successfulReferer ?? ($referers[0] ?? ''),
                     'status_code' => $statusCode,
@@ -237,39 +251,31 @@ class TestConnection extends Action
 
     private function testStorage(array &$results): void
     {
-        $storagePath = dirname(__DIR__, 3) . '/Storage';
-        $testFile = $storagePath . '/connection-test.tmp';
+        $testFile = 'connection-test.tmp';
 
         try {
-            if (!is_dir($storagePath) || !is_writable($storagePath)) {
-                $this->addResult(
-                    $results,
-                    'storage',
-                    'failed',
-                    'Tracker Storage directory is missing or not writable.',
-                    ['path' => $storagePath]
-                );
-                return;
-            }
+            $storage = $this->trackerFileSystem->setWorkDirectory('Storage');
+            $storagePath = $storage->getPath();
+            $storage->writeFile($testFile, (string)time());
 
-            if (file_put_contents($testFile, (string)time()) === false) {
+            if (!$storage->isExists($testFile)) {
                 $this->addResult(
                     $results,
                     'storage',
                     'failed',
                     'Tracker Storage test file could not be written.',
-                    ['path' => $testFile]
+                    ['path' => $storagePath . $testFile]
                 );
                 return;
             }
 
-            if (!unlink($testFile)) {
+            if (!$storage->deleteFile($testFile)) {
                 $this->addResult(
                     $results,
                     'storage',
                     'warning',
                     'Tracker Storage is writable, but the test file could not be deleted.',
-                    ['path' => $testFile]
+                    ['path' => $storagePath . $testFile]
                 );
                 return;
             }
@@ -281,7 +287,7 @@ class TestConnection extends Action
                 'storage',
                 'failed',
                 'Tracker Storage write/delete test failed.',
-                ['path' => $storagePath, 'message' => $e->getMessage()]
+                ['path' => 'var/mktr_tracker/Storage/', 'message' => $e->getMessage()]
             );
         }
     }

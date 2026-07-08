@@ -41,9 +41,9 @@ use Mktr\Tracker\Model\Data as TrackerData;
 use Mktr\Tracker\Model\FileSystem;
 use Mktr\Tracker\Model\Func;
 use Mktr\Tracker\Model\Manager;
-use Mktr\Tracker\Model\Pages\Feed;
-use Mktr\Tracker\Model\Pages\Reviews;
-use Mktr\Tracker\Model\Pages\Subscribes;
+use Mktr\Tracker\Model\Pages\FeedFactory;
+use Mktr\Tracker\Model\Pages\ReviewsFactory;
+use Mktr\Tracker\Model\Pages\SubscribesFactory;
 use Mktr\Tracker\Model\ReviewLogs;
 
 class Data extends AbstractHelper
@@ -92,19 +92,34 @@ class Data extends AbstractHelper
     private $reviewLogs;
 
     /**
-     * @var Reviews
+     * @var ReviewsFactory
      */
-    private $pagesReviews;
+    private $pagesReviewsFactory;
 
     /**
-     * @var Subscribes
+     * @var SubscribesFactory
      */
-    private $pagesSubscribes;
+    private $pagesSubscribesFactory;
 
     /**
-     * @var Feed
+     * @var FeedFactory
      */
-    private $pagesFeed;
+    private $pagesFeedFactory;
+
+    /**
+     * @var \Mktr\Tracker\Model\Pages\Reviews|null
+     */
+    private $pagesReviews = null;
+
+    /**
+     * @var \Mktr\Tracker\Model\Pages\Subscribes|null
+     */
+    private $pagesSubscribes = null;
+
+    /**
+     * @var \Mktr\Tracker\Model\Pages\Feed|null
+     */
+    private $pagesFeed = null;
 
     /**
      * @var HttpRequest
@@ -251,9 +266,9 @@ class Data extends AbstractHelper
         Array2XML $array2XML,
         TrackerData $trackerData,
         ReviewLogs $reviewLogs,
-        Reviews $pagesReviews,
-        Subscribes $pagesSubscribes,
-        Feed $pagesFeed,
+        ReviewsFactory $pagesReviewsFactory,
+        SubscribesFactory $pagesSubscribesFactory,
+        FeedFactory $pagesFeedFactory,
         HttpRequest $request,
         StoreManagerInterface $storeManager,
         StoreRepositoryInterface $storeRepo,
@@ -286,9 +301,9 @@ class Data extends AbstractHelper
         $this->array2XML = $array2XML;
         $this->trackerData = $trackerData;
         $this->reviewLogs = $reviewLogs;
-        $this->pagesReviews = $pagesReviews;
-        $this->pagesSubscribes = $pagesSubscribes;
-        $this->pagesFeed = $pagesFeed;
+        $this->pagesReviewsFactory = $pagesReviewsFactory;
+        $this->pagesSubscribesFactory = $pagesSubscribesFactory;
+        $this->pagesFeedFactory = $pagesFeedFactory;
         $this->request = $request;
         $this->storeManager = $storeManager;
         $this->storeRepo = $storeRepo;
@@ -333,10 +348,19 @@ class Data extends AbstractHelper
             case 'getReviewLogs':
                 return $this->reviewLogs;
             case 'getPagesReviews':
+                if ($this->pagesReviews === null) {
+                    $this->pagesReviews = $this->pagesReviewsFactory->create();
+                }
                 return $this->pagesReviews;
             case 'getPagesSubscribes':
+                if ($this->pagesSubscribes === null) {
+                    $this->pagesSubscribes = $this->pagesSubscribesFactory->create();
+                }
                 return $this->pagesSubscribes;
             case 'getPagesFeed':
+                if ($this->pagesFeed === null) {
+                    $this->pagesFeed = $this->pagesFeedFactory->create();
+                }
                 return $this->pagesFeed;
             case 'getRequest':
                 return $this->request;

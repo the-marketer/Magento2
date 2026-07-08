@@ -19,15 +19,16 @@ Acest document explică cum sunt organizate și cum funcționează modulele `Mkt
 - `Mktr_Google` citește din `mktr_google/google/*` (ex: `status` și `tracking` – GTM ID).
 
 ## Flux principal - `Mktr_Tracker`
-1. Helper/Factory: `Mktr\Tracker\Helper\Data` folosește `ObjectManager` pentru a obține multe servicii (DB, store manager, modele).
+1. Helper/Factory: `Mktr\Tracker\Helper\Data` primește serviciile prin dependency injection și le expune controllerelor/modelelor ca punct central de acces.
 2. Cron-uri: `Mktr\Tracker\Model\Cron` iterează magazinele și rulează joburi configurate (feed, review, subscribe).
 3. Generare date: modelele din `Model/Pages/*` construiesc feed-uri (XML/CSV) și le scriu folosind `Model/FileSystem`.
-4. Comunicare: `Mktr\Tracker\Model\Api::send()` / `REST()` face POST/GET către API-ul TheMarketer, atașând `rest_key` și `customer_id` din configurație.
+4. Comunicare: `Mktr\Tracker\Model\Api::send()` / `REST()` face POST/GET către API-ul TheMarketer prin clientul HTTP Magento, cu verificare TLS activă, atașând `rest_key` și `customer_id` din configurație.
 5. Controllere: `Controller/Api/*` expun endpoint-uri interne (ex: `Orders.php`, `Reviews.php`, `LoadEvents.php`) pentru flows specifice și webhook handling.
 
 ### Observații tehnice Tracker
-- `Api::REST` folosește cURL nativ; se poate înlocui cu `\Magento\Framework\HTTP\Client\Curl` pentru consistență și testabilitate.
-- Sunt folosite apeluri directe la `ObjectManager` în multe locuri — anti-pattern; recomand refactorizare prin dependency injection în constructor.
+- `Api::REST` folosește `\Magento\Framework\HTTP\Client\Curl`, setează timeout-uri și păstrează verificarea TLS activă.
+- Configurațiile sensibile (`tracking_key`, `rest_key`, `customer_id`) sunt salvate criptat și citite decriptat prin `EncryptorInterface`.
+- Cache-ul de export se scrie în `var/mktr_tracker/Storage`, cu nume HMAC, expirare și conținut criptat.
 - Configurațiile cron-urilor și intervalele sunt definite în `system.xml` (per store).
 
 ## Flux principal - `Mktr_Google`
@@ -57,8 +58,8 @@ bin/magento cron:run
 - Poți instrumenta `Model/Api::REST` să mai scrie răspunsuri în log pentru debugging (sau folosește Xdebug pentru debugging pas-cu-pas).
 
 ## Recomandări pentru preluare (takeover)
-- Refactor: înlocuiește `ObjectManager::getInstance()` cu DI în constructor pentru clasele principale (`Helper`, `Model`, `Block`, `Controller`).
-- Înlocuiește cURL nativ cu `\Magento\Framework\HTTP\Client\Curl` sau un client PSR pentru testabilitate.
+- Păstrează dependency injection în clasele noi; nu reintroduce apeluri directe la `ObjectManager`.
+- Pentru apeluri externe noi, folosește clientul HTTP Magento sau un client PSR configurat cu verificare TLS activă.
 - Adaugă unit/integration tests pentru generarea feed-ului și pentru `Api::REST` (mocks pentru http client).
 - Documentează orice custom endpoint din `Controller/Api` (acest doc face overview; pentru detalii vezi fișierele controller).
 
@@ -66,7 +67,7 @@ bin/magento cron:run
 1. Randament: rulează `module:status` și verifică setările din Admin.
 2. Local: activează logging extins temporar în `Model/Api::REST` pentru a vedea request/response.
 3. Testează cron-uri și verifică `var` pentru fișierele generate (feed/exports).
-4. Plan refactor: listează cele mai critice 3-5 clase cu `ObjectManager` și prioritizează DI.
+4. Pentru schimbări noi, verifică `setup:di:compile` și testele unitare ale modulului.
 
 ---
 Document creat rapid pentru onboarding. Dacă vrei, pot extinde cu:
@@ -84,47 +85,47 @@ Toate endpoint-urile publice din acest modul rulează sub frontName-ul `mktr` (v
 - `https://<magento-host>/mktr/api/categories` → `Controller/Api/Category.php`
 - `https://<magento-host>/mktr/api/subscribes` → `Controller/Api/Subscribes.php`
 - `https://<magento-host>/mktr/api/saveorder` → `Controller/Api/SaveOrder.php`
-- `https://<magento-host>/mktr/api/setemail` → `Controller/Api/setEmail.php`
+- `https://<magento-host>/mktr/api/setemail` → `Controller/Api/SetEmail.php`
 - `https://<magento-host>/mktr/api/loadevents` → `Controller/Api/LoadEvents.php`
 - `https://<magento-host>/mktr/api/codegenerator` → `Controller/Api/CodeGenerator.php`
 
 Fiecare controller urmează un pattern comun:
-- validează parametrii (de obicei necesită `key`)
+- validează parametrii; endpoint-urile de export cer headerul `Authorization: Bearer <rest_key>`
 - apelează `Helper\Data` și `Helper\Data->getFunc` pentru utilitare (verificare parametri, formatare, read/write)
 - fie întoarce date proaspete (metodă `freshData` sau `getOrderInfo`), fie folosește `getFunc->readOrWrite()` pentru a citi/crea fișiere cache și a returna rezultatul.
 
 Mai jos, un sumar scurt pentru fiecare controller (ce primește, ce returnează, note utile):
 
 - `Orders.php` (export /mktr/api/orders)
-  - Parametri importanți: `key` (obligatoriu), `start_date` (obligatoriu), `end_date` (opțional), `page`, `limit`, `customerId`.
+  - Parametri importanți: header `Authorization: Bearer <rest_key>`, `start_date` (obligatoriu), `end_date` (opțional), `page`, `limit`, `customerId`.
   - Ce face: construiește lista de comenzi între date, pentru fiecare comandă adaugă informații detașate (produse, prețuri, imagini, categorie, brand). Folosește `getOrderInfo()` și modelul `order` collection. Returnează JSON sau alt mime-type stabilit prin `mime-type` param.
-  - Notă: folosește `getHelp()->getFunc->readOrWrite()` — mecanismul de caching/împărțire în pagini este implementat acolo.
+  - Notă: folosește `getFunc->readOrWrite()` — mecanismul de caching/împărțire în pagini este implementat acolo.
 
 - `Feed.php` (export produse /mktr/api/feed)
-  - Parametri: `key` (obligatoriu) și alții gestionați de `getFunc->readOrWrite`.
+  - Parametri: header `Authorization: Bearer <rest_key>` și alții gestionați de `getFunc->readOrWrite`.
   - Ce face: returnează lista de produse (folosește `Model/Pages/Feed::freshData()`), formatul și caching-ul sunt gestionate de helper.
 
 - `Reviews.php` (export recenzii /mktr/api/reviews)
-  - Parametri: `key`, `start_date`.
+  - Parametri: header `Authorization: Bearer <rest_key>`, `start_date`.
   - Ce face: apelează `getPagesReviews->execute()` și întoarce recenziile într-un shape JSON.
 
 - `Brands.php` (lista branduri /mktr/api/brands)
-  - Parametri: `key`.
+  - Parametri: header `Authorization: Bearer <rest_key>`.
   - Ce face: construiește lista de valori pentru atributele folosite ca brand (din `system.xml` configurat) și returnează nume, id și URL de căutare.
 
 - `Category.php` (lista categorii /mktr/api/categories)
-  - Parametri: `key`, `rmExt` (dacă trebuie eliminată extensia `.html` din URL-uri).
+  - Parametri: header `Authorization: Bearer <rest_key>`, `rmExt` (dacă trebuie eliminată extensia `.html` din URL-uri).
   - Ce face: parcurge categoriile de top și construiește obiecte cu `name`, `url`, `hierarchy`, `image_url`.
 
 - `Subscribes.php` (unsubscribe checks /mktr/api/subscribes)
-  - Parametri: `key`, `date_from`, `date_to`.
+  - Parametri: header `Authorization: Bearer <rest_key>`, `date_from`, `date_to`.
   - Ce face: returnează lista de unsubscribes (folosește `Model/Pages/Subscribes`).
 
 - `SaveOrder.php` (sync la salvari de comandă /mktr/api/saveorder)
   - Endpoints utilizat de frontend JS (ex: `SaveOrder` observer) pentru a trimite comanda la API TheMarketer.
   - Ce face: citește datele stocate în sesiune (`saveOrder`), trimite apelul `save_order` prin `Model/Api`, și, dacă răspunsul e 200, curăță sesiunea.
 
-- `setEmail.php` (sincronizare subscriber /mktr/api/setemail)
+- `SetEmail.php` (sincronizare subscriber /mktr/api/setemail)
   - Ce face: citește email-ul din sesiune, verifică dacă este abonat la newsletter iar dacă da trimite `add_subscriber` către API; rezultatul este servit ca JS (console.log) pentru front-end.
 
 - `LoadEvents.php` (încărcare script evenimente /mktr/api/loadevents)
@@ -141,6 +142,5 @@ Mai jos, un sumar scurt pentru fiecare controller (ce primește, ce returnează,
 - `Observer/Events`: capturează evenimente Magento (addToCart, saveOrder, register, etc.) și pune date în sesiune sau pregătește payload-uri pentru trimitere.
 
 ## Sugestii de documentare suplimentară
-- Pot genera exemplu de request (curl) pentru fiecare endpoint cu parametrii minim necesari.
+- Pot genera exemplu de request (curl) pentru fiecare endpoint cu headerul `Authorization` și parametrii minim necesari.
 - Pot adăuga o diagramă `mermaid` care arată cum fluxul trece de la Observer → Session → LoadEvents/SaveOrder → Api.
-

@@ -13,11 +13,13 @@ curl -H "Authorization: Bearer <rest_key>" "https://example.com/mktr/api/Reviews
 Parametri comuni:
 - `start_date` / `end_date`
 - `page`
-- `limit`
+- `limit` (1..250; valorile din afara intervalului sunt normalizate)
 - `mime-type=json` sau `mime-type=xml`
 - `read`
 
 Cerință de securitate:
 - cheia nu se mai transmite în URL;
-- utilizarea veche prin query param este considerată deprecated și va fi eliminată în viitor.
+- autentificarea prin query param nu este acceptată.
 
+Firebase:
+- configurația web Firebase inclusă în modul identifică proiectul public folosit pentru messaging; aceste valori nu sunt secrete API.

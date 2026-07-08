@@ -76,7 +76,10 @@ class Reviews
             $this->storeList = [];
             foreach ($this->storeRepository->getList() as $store) {
                 if ($this->config->getStoreValue("status", $store->getId()) &&
-                    $this->config->getStoreValue("rest_key", $store->getId()) === $this->config->getRestKey()) {
+                    hash_equals(
+                        (string) $this->config->getRestKey(),
+                        (string) $this->config->getStoreValue("rest_key", $store->getId())
+                    )) {
                     $this->storeList[] = $store->getId();
                 }
             }

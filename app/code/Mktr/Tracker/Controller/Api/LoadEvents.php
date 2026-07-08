@@ -10,20 +10,18 @@
 
 namespace Mktr\Tracker\Controller\Api;
 
-use Magento\Framework\App\Action\Action;
-use Magento\Framework\App\Action\Context;
+use Magento\Framework\App\Action\HttpGetActionInterface;
 use Mktr\Tracker\Helper\Data;
 
-class LoadEvents extends Action
+class LoadEvents implements HttpGetActionInterface
 {
     /**
      * @var Data
      */
     private $helper;
 
-    public function __construct(Context $context, Data $helper)
+    public function __construct(Data $helper)
     {
-        parent::__construct($context);
         $this->helper = $helper;
     }
 
@@ -51,7 +49,7 @@ class LoadEvents extends Action
         }
 
         foreach ($loadJS as $k => $v) {
-            $lines[] = 'window.mktr.loadScript("' . $k . '");';
+            $lines[] = 'if (window.mktr.postAction) { window.mktr.postAction("' . $k . '"); }';
         }
 
         $result = $this->helper->getPageRaw;

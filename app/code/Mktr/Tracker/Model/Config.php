@@ -11,6 +11,7 @@
 namespace Mktr\Tracker\Model;
 
 use Magento\Framework\App\Config\ScopeConfigInterface;
+use Magento\Framework\Encryption\EncryptorInterface;
 use Magento\Store\Model\StoreManagerInterface;
 
 class Config
@@ -20,6 +21,7 @@ class Config
     const DATE_START_FORMAT = "Y-m-d 00:00:00";
     const DATE_END_FORMAT = "Y-m-d 23:59:59";
 
+    // Firebase web config values are public project identifiers, not secret credentials.
     const FireBase = 'const firebaseConfig = {
   apiKey: "AIzaSyA3c9lHIzPIvUciUjp1U2sxoTuaahnXuHw",
   projectId: "themarketer-e5579",
@@ -32,7 +34,7 @@ importScripts("https://www.gstatic.com/firebasejs/9.4.0/firebase-messaging-compa
 importScripts("./firebase-config.js");
 importScripts("https://t.themarketer.com/firebase.js");';
 
-    private const LOADER = '(function(d, s, i) { var f = d.getElementsByTagName(s)[0], j = d.createElement(s);j.async = true; j.src = "https://t.themarketer.com/t/j/" + i; f.parentNode.insertBefore(j, f);})(document, "script", "%s")';
+    private const LOADER = '(function(d, s, i) { var f = d.getElementsByTagName(s)[0], j = d.createElement(s);j.async = true; j.src = "https://t.themarketer.com/t/j/" + i; f.parentNode.insertBefore(j, f);})(document, "script", %s)';
 
     const configNames = [
         'status' => 'mktr_tracker/tracker/status',
@@ -72,6 +74,12 @@ importScripts("https://t.themarketer.com/firebase.js");';
         'stock_source' => 'all'
     ];
 
+    private const SENSITIVE_CONFIG_NAMES = [
+        'tracking_key' => true,
+        'rest_key' => true,
+        'customer_id' => true
+    ];
+
     const observerGetEvents = [
         "addToCart"=> [false, "__sm__add_to_cart"],
         "removeFromCart"=> [false, "__sm__remove_from_cart"],
@@ -98,6 +106,11 @@ importScripts("https://t.themarketer.com/firebase.js");';
     private $storeManager;
 
     /**
+     * @var EncryptorInterface
+     */
+    private $encryptor;
+
+    /**
      * @var array<int|string, array<string, mixed>>
      */
     private $configCache = [];
@@ -109,10 +122,12 @@ importScripts("https://t.themarketer.com/firebase.js");';
 
     public function __construct(
         ScopeConfigInterface $scopeConfig,
-        StoreManagerInterface $storeManager
+        StoreManagerInterface $storeManager,
+        EncryptorInterface $encryptor
     ) {
         $this->scopeConfig = $scopeConfig;
         $this->storeManager = $storeManager;
+        $this->encryptor = $encryptor;
     }
 
     /** @noinspection PhpUnused */
@@ -168,7 +183,7 @@ importScripts("https://t.themarketer.com/firebase.js");';
     public function getScopeCode()
     {
         if ($this->scopeCode === null) {
-            $this->scopeCode = $this->storeManager->getStore()->getStoreId();
+            $this->scopeCode = $this->storeManager->getStore()->getId();
         }
 
         return $this->scopeCode;
@@ -182,10 +197,21 @@ importScripts("https://t.themarketer.com/firebase.js");';
     public function getStoreValue($name, $store)
     {
         if (isset(self::configNames[$name])) {
-            return $this->scopeConfig->getValue(self::configNames[$name], self::scopeType, $store);
+            $value = $this->scopeConfig->getValue(self::configNames[$name], self::scopeType, $store);
+
+            if (isset(self::SENSITIVE_CONFIG_NAMES[$name])) {
+                return $this->decryptConfigValue($value);
+            }
+
+            return $value;
         }
 
         return $this->scopeConfig->getValue($name, self::scopeType, $store);
+    }
+
+    public function decryptSensitiveValue($value)
+    {
+        return $this->decryptConfigValue($value);
     }
 
     public function getValue($name)
@@ -203,6 +229,12 @@ importScripts("https://t.themarketer.com/firebase.js");';
                     self::scopeType,
                     $this->getScopeCode()
                 );
+                if (isset(self::SENSITIVE_CONFIG_NAMES[$name])) {
+                    $this->configCache[$scopeKey][$name] = $this->decryptConfigValue(
+                        $this->configCache[$scopeKey][$name]
+                    );
+                }
+
                 if (in_array($name, ['color', 'size', 'brand'], true)) {
                     $this->configCache[$scopeKey][$name] = $this->configCache[$scopeKey][$name] !== null
                         && $this->configCache[$scopeKey][$name] !== ''
@@ -219,6 +251,27 @@ importScripts("https://t.themarketer.com/firebase.js");';
         }
 
         return $this->configCache[$scopeKey][$name];
+    }
+
+    private function decryptConfigValue($value)
+    {
+        if ($value === null || $value === '') {
+            return $value;
+        }
+
+        $value = (string) $value;
+
+        if (!preg_match('/^\d+:\d+:/', $value)) {
+            return $value;
+        }
+
+        try {
+            $decrypted = $this->encryptor->decrypt($value);
+        } catch (\Exception $e) {
+            return '';
+        }
+
+        return $decrypted !== '' ? $decrypted : '';
     }
 
     /** @noinspection PhpUnused */

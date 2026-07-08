@@ -10,11 +10,10 @@
 
 namespace Mktr\Tracker\Controller\Api;
 
-use Magento\Framework\App\Action\Action;
-use Magento\Framework\App\Action\Context;
+use Magento\Framework\App\Action\HttpGetActionInterface;
 use Mktr\Tracker\Helper\Data;
 
-class Orders extends Action
+class Orders implements HttpGetActionInterface
 {
     /**
      * @var Data
@@ -36,9 +35,8 @@ class Orders extends Action
      */
     private $imageLink;
 
-    public function __construct(Context $context, Data $helper)
+    public function __construct(Data $helper)
     {
-        parent::__construct($context);
         $this->helper = $helper;
     }
 
@@ -58,27 +56,17 @@ class Orders extends Action
         $products = [];
 
         foreach ($saveOrder->getAllVisibleItems() as $item) {
-            // getProductById();
-            // $pro = $this->helper->getProductRepo->load($item->getProductId());
-            try{
+            try {
                 $pro = $this->helper->getProduct->getById($item->getProductId(), false, $this->helper->getFunc->getStoreId(), true);
-            } catch (\Exception $e){
+            } catch (\Exception $e) {
                 continue;
             }
 
             $pro->setStoreId($this->helper->getFunc->getStoreId());
-/*
-            $price = $this->helper->getFunc->digit2(
-                $this->helper->getTax->getTaxPrice($item, $item->getPrice(), true)
-            );
-            $sale_price = $item->getFinalPrice() > 0 ? $this->helper->getFunc->digit2(
-                $this->helper->getTax->getTaxPrice($item, $item->getFinalPrice(), true)
-            ) : $price;
-*/          
             $price = $this->helper->getFunc->digit2(
                 $item->getPriceInclTax()
             );
-            
+
             $sale_price = $item->getFinalPriceInclTax() > 0 ? $this->helper->getFunc->digit2(
                 $item->getFinalPriceInclTax()
             ) : $price;
@@ -165,8 +153,8 @@ class Orders extends Action
 
         $brandAttribute = $this->helper->getConfig->getBrandAttribute();
         $this->brandAttribute = $brandAttribute;
-        $params['page'] = (int) (isset($params['page']) ? $params['page'] : 1);
-        $params['limit'] = (int) (isset($params['limit']) ? $params['limit'] : 50);
+        $params['page'] = $this->helper->getFunc->getPageParam();
+        $params['limit'] = $this->helper->getFunc->getLimitParam();
 
         $data['startDate'] = date(
             $this->helper->getConfig->getDateStart(),

@@ -28,5 +28,9 @@ sh mktr/mktr.sh uninstall php7.4 # if you have multiple php versions you can add
 + Use as
 + /mktr/api/Feed?store={STORE_ID|STORE_CODE}
 
++ API keys are not accepted through query parameters.
++ API pagination normalizes page to at least 1 and limit to 1..250.
++ Firebase web config values shipped with the module are public project identifiers, not secret credentials.
+
 + Magento 2 Default
 + /mktr/api/Feed?___store={STORE_CODE}

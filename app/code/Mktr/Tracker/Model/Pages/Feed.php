@@ -66,7 +66,6 @@ class Feed
     {
         if ($img === null) { $img = ''; }
         if ($this->imageLink === null) {
-            /** TODO: Magento 2 */
             $this->imageLink = $this->helper->getStore->getBaseUrl(UrlInterface::URL_TYPE_MEDIA).'catalog/product' ;
         }
         return $this->imageLink . (substr($img, 0, 1) === '/' ? '' : '/') . $img;
@@ -77,7 +76,6 @@ class Feed
         $img = $product->getImage();
         if ($img === null) { $img = ''; }
         if ($this->imageLink === null) {
-            /** TODO: Magento 2 */
             $this->imageLink = $this->helper->getStore->getBaseUrl(UrlInterface::URL_TYPE_MEDIA).'catalog/product';
         }
         return $this->imageLink . (substr($img, 0, 1) === '/' ? '' : '/') . $img;
@@ -115,15 +113,9 @@ class Feed
         $this->attr['color'] = $this->helper->getConfig->getColorAttribute();
         $this->attr['size'] = $this->helper->getConfig->getSizeAttribute();
 
-        if (isset($this->params['page'])) {
-            $stop = true;
-            $this->params['page'] = (int) $this->params['page'];
-        } else {
-            $this->params['page'] = 1;
-        }
-
-        $this->params['page'] = max(1, (int) ($this->params['page'] ?? 1));
-        $this->params['limit'] = (int) ($this->params['limit'] ?? 50);
+        $stop = isset($this->params['page']);
+        $this->params['page'] = $this->helper->getFunc->getPageParam();
+        $this->params['limit'] = $this->helper->getFunc->getLimitParam();
 
         $storeId = $this->helper->getFunc->getStoreId();
 
@@ -199,7 +191,6 @@ class Feed
             'image'=>[]
         ];
 
-        /** TODO: Magento 2 */
         $gal = $this->helper->getProductMedia->getList($product->getSku());
         if ($gal !== null) {
             foreach ($gal as $img) {
@@ -213,7 +204,6 @@ class Feed
         $variations = [
             'variation' => []
         ];
-        /** TODO: Magento 2 */
         if ($this->checkMSI()) {
             $MasterQty = 0;
             foreach ($this->sourceItemsBySkuResolver->execute($product->getSku()) as $item) {

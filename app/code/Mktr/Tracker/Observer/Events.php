@@ -53,7 +53,6 @@ class Events implements ObserverInterface
         /* "review_controller_product_init_after" => "Review", */
         "admin_system_config_changed_section_mktr_tracker" => "SaveButton",
         "sales_order_save_after" => "UpdateOrder",
-        /* TODO CARD PAY 'sales_order_save_commit_after' */
         "sales_order_place_after" => "saveOrder",
         "controller_action_predispatch_catalog_product_view" => "addToCartAndCheckout",
         "controller_action_postdispatch_checkout_cart_index" => "applyDiscountCode"
@@ -168,7 +167,6 @@ class Events implements ObserverInterface
             'product_id' => $ID,
             'variation' => [
                 'id' => $valueID,
-                /** TODO: Magento 1 = load($valueID)->getSku() | Magento 2 = getById($valueID)->getSku() */
                 'sku' => $this->helper->getProductRepo->load($valueID)->getSku()
             ]
         ];
@@ -194,7 +192,6 @@ class Events implements ObserverInterface
             'product_id' => $ID,
             'variation' => [
                 'id' => $valueID,
-                /** TODO: Magento 1 = load($valueID)->getSku() | Magento 2 = getById($valueID)->getSku() */
                 'sku' => $this->helper->getProductRepo->load($valueID)->getSku()
             ]
         ];
@@ -265,7 +262,6 @@ class Events implements ObserverInterface
     {
         $object = $this->observer->getObject();
 
-        /** TODO: Magento 2 - Subscriber - Magento 1 - Mage_Newsletter_Model_Subscriber*/
         /** @noinspection PhpUndefinedClassInspection */
         if ($object instanceof Subscriber) {
             if ($object->getEmail() === null) {
@@ -426,7 +422,6 @@ class Events implements ObserverInterface
     /** @noinspection PhpReturnValueOfMethodIsNeverUsedInspection */
     private function mktrSessionSet()
     {
-        /* TODO : UPDATE */
         $fName = $this->helper->getSessionName.$this->eventName;
 
         $this->helper->getSession->{"set".$fName}($this->eventData);

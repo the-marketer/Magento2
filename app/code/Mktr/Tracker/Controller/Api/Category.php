@@ -10,11 +10,10 @@
 
 namespace Mktr\Tracker\Controller\Api;
 
-use Magento\Framework\App\Action\Action;
-use Magento\Framework\App\Action\Context;
+use Magento\Framework\App\Action\HttpGetActionInterface;
 use Mktr\Tracker\Helper\Data;
 
-class Category extends Action
+class Category implements HttpGetActionInterface
 {
     /**
      * @var Data
@@ -44,9 +43,8 @@ class Category extends Action
      */
     private $imageLink;
 
-    public function __construct(Context $context, Data $helper)
+    public function __construct(Data $helper)
     {
-        parent::__construct($context);
         $this->helper = $helper;
     }
 

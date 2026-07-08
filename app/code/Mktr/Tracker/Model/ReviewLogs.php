@@ -15,21 +15,18 @@ class ReviewLogs
     protected $file = "reviews.json";
     protected $dir = "Storage";
     protected $isDirty = false;
-    protected $path = null;
-    protected $size = null;
-    protected $exists = null;
-    protected $fOpen = null;
     protected $content = null;
     protected $data = [];
     protected $original = [];
 
     /**
-     * @var string|null
+     * @var FileSystem
      */
-    private $libPath = null;
+    private $storage;
 
-    public function __construct()
+    public function __construct(FileSystem $fileSystem)
     {
+        $this->storage = $fileSystem->setWorkDirectory($this->dir);
         $this->refresh();
     }
 
@@ -52,37 +49,19 @@ class ReviewLogs
     {
         if ($this->isDirty) {
             $this->isDirty = false;
-            $this->fOpen = fopen($this->path, 'w+');
-            fwrite($this->fOpen, json_encode($this->data, JSON_UNESCAPED_SLASHES));
-            fclose($this->fOpen);
+            $this->storage->writeFile($this->file, json_encode($this->data, JSON_UNESCAPED_SLASHES));
             $this->original = $this->data;
         }
         return $this;
     }
 
-    private function getLibPath()
-    {
-        if ($this->libPath === null) {
-            $this->libPath = dirname(__DIR__) . "/";
-        }
-        return $this->libPath;
-    }
-
     public function refresh()
     {
-        $this->size = null;
-        $this->exists = null;
-        $this->path = $this->getLibPath() . $this->dir . "/" . $this->file;
+        $this->content = $this->storage->readFile($this->file);
 
-        if ($this->fileExists() && $this->fileSize()) {
-            $this->fOpen = fopen($this->path, "rb");
-            $this->content = fread($this->fOpen, (int) $this->size);
-            fclose($this->fOpen);
-        }
-
-        if ($this->content !== null) {
+        if ($this->content !== false && $this->content !== '') {
             $this->original = json_decode($this->content, true);
-            $this->data = $this->original;
+            $this->data = is_array($this->original) ? $this->original : [];
         }
         return $this;
     }
@@ -123,19 +102,4 @@ class ReviewLogs
         return $this;
     }
 
-    protected function fileExists()
-    {
-        if ($this->exists === null) {
-            $this->exists = file_exists($this->path);
-        }
-        return $this->exists;
-    }
-
-    protected function fileSize()
-    {
-        if ($this->size === null) {
-            $this->size = filesize($this->path);
-        }
-        return $this->size > 0;
-    }
 }

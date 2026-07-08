@@ -208,9 +208,18 @@ setup_upgrade_without_elasticsearch() {
   fi
 
   cp -a "$file" "$bak"
+  DEPLOY_VALIDATOR_FILE="$file"
+  DEPLOY_VALIDATOR_BAK="$bak"
   restore_validator() {
-    cp -a "$bak" "$file"
-    rm -f "$bak"
+    local backup_file="${DEPLOY_VALIDATOR_BAK:-}"
+    local target_file="${DEPLOY_VALIDATOR_FILE:-}"
+
+    if [[ -n "$backup_file" && -n "$target_file" && -f "$backup_file" ]]; then
+      cp -a "$backup_file" "$target_file"
+      rm -f "$backup_file"
+    fi
+
+    unset DEPLOY_VALIDATOR_FILE DEPLOY_VALIDATOR_BAK
   }
   trap restore_validator EXIT
 
@@ -235,11 +244,22 @@ PHP
   local upgrade_status="${PIPESTATUS[0]}"
   set -e
 
+  if [[ "$upgrade_status" -eq 137 ]]; then
+    cat >&2 <<EOF
+setup:upgrade was killed by the container, most likely because it ran out of memory.
+This happened before compile/static deploy, so --no-compile or --no-static will not avoid this step.
+Try increasing the Docker/container memory limit, adding swap, or disabling/removing sample data modules if they are not needed.
+EOF
+  fi
+
   if [[ "$upgrade_status" -ne 0 ]]; then
     if grep -q 'Could not ping search engine' "$upgrade_log" \
       && magento setup:db:status 2>&1 | tee -a "$upgrade_log" | grep -q 'All modules are up to date'; then
       echo "Continuing after Elasticsearch ping failure; Magento DB is up to date."
     else
+      rm -f "$upgrade_log"
+      restore_validator
+      trap - EXIT
       return "$upgrade_status"
     fi
   fi
@@ -266,6 +286,34 @@ publish_static_version_dir() {
   cp -a pub/static/adminhtml "$target/"
   cp -a pub/static/frontend "$target/"
   echo "Published static assets to $target"
+}
+
+ensure_static_version_file() {
+  cd "$MAGENTO_ROOT"
+
+  local version_file="pub/static/deployed_version.txt"
+  mkdir -p pub/static
+
+  if [[ ! -s "$version_file" ]]; then
+    date +%s > "$version_file"
+    echo "Created missing static content version file: $version_file"
+  fi
+}
+
+ensure_static_assets_for_skip() {
+  cd "$MAGENTO_ROOT"
+
+  ensure_static_version_file
+
+  if [[ ! -d pub/static/adminhtml || ! -d pub/static/frontend ]]; then
+    cat >&2 <<EOF
+Static content deploy was skipped, but existing static assets are missing.
+Run without --no-static once, or restore pub/static before using --no-static.
+EOF
+    return 1
+  fi
+
+  publish_static_version_dir
 }
 
 run_di_compile() {
@@ -302,9 +350,31 @@ EOF
   return "$static_status"
 }
 
+ensure_missing_core_sourcemaps() {
+  cd "$MAGENTO_ROOT"
+
+  local underscore_map="lib/web/underscore-umd.js.map"
+  if [[ ! -f "$underscore_map" ]]; then
+    cat > "$underscore_map" <<'JSON'
+{
+  "version": 3,
+  "file": "underscore.js",
+  "sources": [],
+  "names": [],
+  "mappings": ""
+}
+JSON
+  fi
+}
+
 run_build() {
-  magento module:enable --clear-static-content Mktr_Tracker Mktr_Google
+  if [[ "$SKIP_STATIC" -eq 1 ]]; then
+    magento module:enable Mktr_Tracker
+  else
+    magento module:enable --clear-static-content Mktr_Tracker
+  fi
   setup_upgrade_without_elasticsearch
+  ensure_missing_core_sourcemaps
   if [[ "$SKIP_COMPILE" -eq 1 ]]; then
     echo "Skipping setup:di:compile because --no-compile was passed."
   else
@@ -313,6 +383,7 @@ run_build() {
   magento cache:flush
   if [[ "$SKIP_STATIC" -eq 1 ]]; then
     echo "Skipping setup:static-content:deploy because --no-static was passed."
+    ensure_static_assets_for_skip
   else
     run_static_deploy
     publish_static_version_dir

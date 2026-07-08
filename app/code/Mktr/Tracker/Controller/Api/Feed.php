@@ -10,12 +10,11 @@
 
 namespace Mktr\Tracker\Controller\Api;
 
-use Magento\Framework\App\Action\Action;
-use Magento\Framework\App\Action\Context;
+use Magento\Framework\App\Action\HttpGetActionInterface;
 use Magento\Newsletter\Model\Subscriber;
 use Mktr\Tracker\Helper\Data;
 
-class Feed extends Action
+class Feed implements HttpGetActionInterface
 {
     /**
      * @var Data
@@ -25,9 +24,8 @@ class Feed extends Action
     private $fileName = "products";
     private $secondName = "product";
 
-    public function __construct(Context $context, Data $helper)
+    public function __construct(Data $helper)
     {
-        parent::__construct($context);
         $this->helper = $helper;
     }
 

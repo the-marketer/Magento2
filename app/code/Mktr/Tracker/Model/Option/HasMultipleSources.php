@@ -45,8 +45,8 @@ class HasMultipleSources extends Value
         SourceRepositoryInterface $sourceRepository,
         SearchCriteriaBuilder $searchCriteriaBuilder,
         ModuleManager $moduleManager,
-        \Magento\Framework\Model\ResourceModel\AbstractResource $resource = null,
-        \Magento\Framework\Data\Collection\AbstractDb $resourceCollection = null,
+        ?\Magento\Framework\Model\ResourceModel\AbstractResource $resource = null,
+        ?\Magento\Framework\Data\Collection\AbstractDb $resourceCollection = null,
         array $data = []
     ) {
         $this->sourceRepository = $sourceRepository;

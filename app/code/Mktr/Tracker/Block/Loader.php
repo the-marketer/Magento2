@@ -79,12 +79,21 @@ class Loader extends Template
             }
         }';
 
-        $baseURL = $this->helper->getBaseUrl;
+        $baseURL = json_encode((string) $this->helper->getBaseUrl, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT);
 
         $lines[] = 'window.mktr.loadScript = function (mktrPage = null) {
-            if (mktrPage !== null) { let time = (new Date()).getTime(); let url = "' . $baseURL . 'mktr/api/"+mktrPage;
+            if (mktrPage !== null) { let time = (new Date()).getTime(); let url = ' . $baseURL . ' + "mktr/api/" + mktrPage;
                 let add = document.createElement("script"); add.async = true; add.src = url + ( url.includes("?") ? "&mk=" : "?mk=") + time;
                 let s = document.getElementsByTagName("script")[0]; s.parentNode.insertBefore(add,s); } }';
+        $lines[] = 'window.mktr.postAction = function (mktrPage = null) {
+            if (mktrPage !== null && typeof fetch !== "undefined") {
+                fetch(' . $baseURL . ' + "mktr/api/" + mktrPage, {
+                    method: "POST",
+                    credentials: "same-origin",
+                    headers: {"X-Requested-With": "XMLHttpRequest"}
+                });
+            }
+        };';
         $lines[] = 'window.mktr.loadEvents = function () { window.mktr.loadScript("LoadEvents"); };';
         $lines[] = 'window.mktr.retry = function () {
             if (typeof dataLayer != "undefined") {
@@ -94,7 +103,8 @@ class Loader extends Template
             }
         };';
 
-        $lines[] = vsprintf($this->helper->getConfig->getLoader(), [$this->helper->getConfig->getKey()]);
+        $trackingKey = json_encode((string) $this->helper->getConfig->getKey(), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT);
+        $lines[] = vsprintf($this->helper->getConfig->getLoader(), [$trackingKey]);
 
         $eventName = $this->getEventName();
 
@@ -119,7 +129,7 @@ class Loader extends Template
 
         if (!empty($selector)) {
             $lines[] = 'window.addEventListener("click", function(event){ 
-                let selector1 = ' . json_encode($selector) . ';
+                let selector1 = ' . json_encode($selector, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) . ';
                 let closestElem1 = event.target.closest(selector1);
                 let closestElem2 = event.target.matches(selector1);
                 if (closestElem1 || closestElem2) { setTimeout(window.mktr.loadEvents, 3000); }

@@ -18,6 +18,11 @@ use Magento\Store\Model\StoreManagerInterface;
 
 class Func
 {
+    private const CACHE_TTL_SECONDS = 86400;
+    private const DEFAULT_PAGE = 1;
+    private const DEFAULT_LIMIT = 50;
+    private const MAX_LIMIT = 250;
+
     /**
      * @var Config
      */
@@ -150,7 +155,7 @@ class Func
                 $this->storeId = $store;
                 $this->storeManager->setCurrentStore($store);
             } else {
-                $this->storeId = $this->storeManager->getStore()->getStoreId();
+                $this->storeId = $this->storeManager->getStore()->getId();
             }
         }
 
@@ -165,15 +170,10 @@ class Func
 
         $params = $this->request->getParams();
 
-        if (isset($params['start_date'])) {
-            $script = base64_encode($params['start_date'] . '-' . $this->getStoreId());
-        } else {
-            $script = $this->getStoreId();
-        }
-
-        $fileName = $action->getName() . "." . $script . "." . $params["mime-type"];
+        $fileName = $this->buildCacheFileName($action->getName(), $params);
 
         $module = $this->fileSystem->setWorkDirectory("Storage");
+        $module->deleteExpiredFiles(self::CACHE_TTL_SECONDS);
 
         $out = $action->freshData();
 
@@ -192,20 +192,10 @@ class Func
         $module = $this->fileSystem->setWorkDirectory("Storage");
         $params = $this->request->getParams();
 
-        if (isset($params['start_date'])) {
-            $script = base64_encode($params['start_date'] . '-' . $this->getStoreId());
-        } else {
-            $script = $this->getStoreId();
-        }
+        $fileName = $this->buildCacheFileName($fName, $params);
+        $module->deleteExpiredFiles(self::CACHE_TTL_SECONDS);
 
-        $pageKey = '';
-        if (isset($params['page']) || isset($params['limit'])) {
-            $pageKey = '.p' . ($params['page'] ?? 'all') . '.l' . ($params['limit'] ?? '50');
-        }
-
-        $fileName = $fName . "." . $script . $pageKey . "." . $params["mime-type"];
-
-        if (isset($params['read']) && $module->isExists($fileName)) {
+        if (isset($params['read']) && $module->isExists($fileName) && !$module->isExpired($fileName, self::CACHE_TTL_SECONDS)) {
             $out = $module->readFile($fileName);
 
             if ($out !== false) {
@@ -220,11 +210,49 @@ class Func
         return $result;
     }
 
-    public function Output($data, $data1 = null, $type = null, $convert = true)
+    public function getPageParam(): int
+    {
+        $page = (int) ($this->request->getParam('page', self::DEFAULT_PAGE));
+
+        return max(self::DEFAULT_PAGE, $page);
+    }
+
+    public function getLimitParam(): int
+    {
+        $limit = (int) ($this->request->getParam('limit', self::DEFAULT_LIMIT));
+
+        return min(self::MAX_LIMIT, max(1, $limit));
+    }
+
+    private function buildCacheFileName(string $name, array $params): string
+    {
+        $mimeType = $params['mime-type'] ?? 'xml';
+        $page = isset($params['page']) ? $this->getPageParam() : 'all';
+        $limit = isset($params['limit']) ? $this->getLimitParam() : self::DEFAULT_LIMIT;
+        $rawKey = implode('|', [
+            $name,
+            $this->getStoreId(),
+            $params['start_date'] ?? '',
+            $params['end_date'] ?? '',
+            $page,
+            $limit,
+            $mimeType
+        ]);
+        $secret = (string) ($this->config->getRestKey() ?: $this->config->getCustomerId() ?: 'mktr_tracker');
+
+        return $name . '.' . hash_hmac('sha256', $rawKey, $secret) . '.' . $mimeType;
+    }
+
+    public function Output($data, $data1 = null, $type = null, $convert = true, ?int $httpStatusCode = null)
     {
         $type = $type ?? $this->request->getParam('mime-type') ?? "xml";
 
         $result = $this->rawFactory->create();
+        $httpStatusCode = $httpStatusCode ?? $this->resolveHttpStatusCode($data, $data1);
+
+        if ($httpStatusCode !== 200) {
+            $result->setHttpResponseCode($httpStatusCode);
+        }
 
         $this->output = "";
 
@@ -251,6 +279,19 @@ class Func
         }
 
         return $result->setContents($this->output);
+    }
+
+    private function resolveHttpStatusCode($data, $data1 = null): int
+    {
+        if ($data === 'status' && $data1 === 'Incorrect Authorization') {
+            return 401;
+        }
+
+        if (is_array($data) && ($data['status'] ?? null) === 'Incorrect Authorization') {
+            return 401;
+        }
+
+        return 200;
     }
 
     public function isParamValid($checkParam = null)
@@ -280,48 +321,28 @@ class Func
                                 break;
                             case "DateCheck":
                                 if (isset($this->params[$k]) && !$this->validateDate($this->params[$k])) {
-                                    $error = "Incorrect Date " .
-                                        $k . " - " .
-                                        $this->params[$k] . " - " .
-                                        $this->dateFormat;
+                                    $error = "Incorrect Date";
                                 }
                                 break;
                             case "StartDate":
                                 if (isset($this->params[$k]) && strtotime($this->params[$k]) > \time()) {
-                                    $error = "Incorrect Start Date " .
-                                        $k . " - " .
-                                        $this->params[$k] . " - Today is " .
-                                        date($this->dateFormat, \time());
+                                    $error = "Incorrect Start Date";
                                 }
                                 break;
                             case "Key":
-                                $providedKey = isset($this->params[$k]) ? (string) $this->params[$k] : '';
-                                $expectedKey = (string) $this->config->getRestKey();
-                                if ($providedKey === '' || !hash_equals($expectedKey, $providedKey)) {
-                                    $error = "Incorrect REST API Key";
-                                }
-                                break;
                             case "KeyAuth":
-                                $authHeader = $this->request->getHeader('Authorization');
-                                $token = null;
-
-                                if ($authHeader && preg_match('/Bearer\s+(\S+)/', $authHeader, $matches)) {
-                                    $token = $matches[1];
-                                }
-
-                                $expectedToken = (string) $this->config->getRestKey();
-                                if (!$token || !hash_equals($expectedToken, (string) $token)) {
+                                if (!$this->isAuthorizedByBearerToken()) {
                                     $error = "Incorrect Authorization";
                                 }
                                 break;
                             case "RuleCheck":
                                 if (isset($this->params[$k]) && !isset($this->config->getDiscountRules()[$this->params[$k]])) {
-                                    $error = "Incorrect Rule Type " . $this->params[$k];
+                                    $error = "Incorrect Rule Type";
                                 }
                                 break;
                             case "Int":
                                 if (isset($this->params[$k]) && !is_numeric($this->params[$k])) {
-                                    $error = "Incorrect Value " . $this->params[$k];
+                                    $error = "Incorrect Value";
                                 }
                                 break;
                             case "allow_export":
@@ -337,5 +358,19 @@ class Func
         }
 
         return $error;
+    }
+
+    private function isAuthorizedByBearerToken(): bool
+    {
+        $authHeader = $this->request->getHeader('Authorization');
+        $token = null;
+
+        if ($authHeader && preg_match('/Bearer\s+(\S+)/', $authHeader, $matches)) {
+            $token = $matches[1];
+        }
+
+        $expectedToken = (string) $this->config->getRestKey();
+
+        return $token !== null && hash_equals($expectedToken, (string) $token);
     }
 }
