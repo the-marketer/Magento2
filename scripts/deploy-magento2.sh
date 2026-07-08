@@ -6,6 +6,7 @@ REPO_URL="${REPO_URL:-https://github.com/the-marketer/Magento2.git}"
 MAGENTO_ROOT="${MAGENTO_ROOT:-/var/www/html}"
 PHP_BIN="${PHP_BIN:-php -d memory_limit=-1}"
 SKIP_BUILD=0
+SKIP_COMPILE=0
 BRANCH_FROM_ARGS=0
 
 reexec_from_temp() {
@@ -26,8 +27,8 @@ reexec_from_temp() {
 usage() {
   cat <<'USAGE'
 Usage:
-  scripts/deploy-magento2.sh <branch> [--no-build]
-  scripts/deploy-magento2.sh --branch <branch> [--no-build]
+  scripts/deploy-magento2.sh <branch> [--no-build] [--no-compile]
+  scripts/deploy-magento2.sh --branch <branch> [--no-build] [--no-compile]
 
 Run this inside the Magento Docker container. The script attaches the Magento
 root to the Git repository if needed, fetches the requested branch, resets the
@@ -43,6 +44,7 @@ Options:
   -b, --branch  Branch to deploy.
   --no-build    Pull the code only; skip Magento build commands.
   --sync-only   Alias for --no-build, kept for older notes.
+  --no-compile  Skip setup:di:compile; useful on low-memory containers.
 USAGE
 }
 
@@ -61,6 +63,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --no-build|--sync-only)
       SKIP_BUILD=1
+      shift
+      ;;
+    --no-compile)
+      SKIP_COMPILE=1
       shift
       ;;
     -h|--help)
@@ -256,10 +262,31 @@ publish_static_version_dir() {
   echo "Published static assets to $target"
 }
 
+run_di_compile() {
+  set +e
+  magento setup:di:compile
+  local compile_status="$?"
+  set -e
+
+  if [[ "$compile_status" -eq 137 ]]; then
+    cat >&2 <<EOF
+setup:di:compile was killed by the container, most likely because it ran out of memory.
+Retry with:
+  scripts/deploy-magento2.sh $BRANCH --no-compile
+EOF
+  fi
+
+  return "$compile_status"
+}
+
 run_build() {
   magento module:enable --clear-static-content Mktr_Tracker Mktr_Google
   setup_upgrade_without_elasticsearch
-  magento setup:di:compile
+  if [[ "$SKIP_COMPILE" -eq 1 ]]; then
+    echo "Skipping setup:di:compile because --no-compile was passed."
+  else
+    run_di_compile
+  fi
   magento cache:flush
   magento setup:static-content:deploy -f
   publish_static_version_dir

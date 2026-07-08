@@ -98,6 +98,19 @@ Aliasul vechi inca merge:
 ./scripts/deploy-magento2.sh refactoring --sync-only
 ```
 
+## Fara DI compile
+
+Daca deploy-ul ajunge la `setup:di:compile` si procesul este omorat cu
+`Killed`, containerul a ramas fara memorie. Poti continua deploy-ul fara
+compilare:
+
+```sh
+./scripts/deploy-magento2.sh refactoring --no-compile
+```
+
+Scriptul va rula in continuare `setup:upgrade`, cache flush, static deploy si
+verificarile finale.
+
 ## Build Magento rulat dupa Git update
 
 Scriptul ruleaza in container:
