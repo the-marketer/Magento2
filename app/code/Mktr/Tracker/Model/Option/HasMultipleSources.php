@@ -13,14 +13,11 @@ namespace Mktr\Tracker\Model\Option;
 use Magento\Framework\Api\SearchCriteriaBuilder;
 use Magento\Framework\App\Config\Value;
 use Magento\Framework\Module\Manager as ModuleManager;
-use Magento\InventoryApi\Api\SourceRepositoryInterface;
+use Magento\Framework\ObjectManagerInterface;
 
 class HasMultipleSources extends Value
 {
-    /**
-     * @var SourceRepositoryInterface
-     */
-    private $sourceRepository;
+    private const SOURCE_REPOSITORY = 'Magento\InventoryApi\Api\SourceRepositoryInterface';
 
     /**
      * @var SearchCriteriaBuilder
@@ -33,6 +30,11 @@ class HasMultipleSources extends Value
     private $moduleManager;
 
     /**
+     * @var ObjectManagerInterface
+     */
+    private $objectManager;
+
+    /**
      * @var int|null
      */
     private $msiEnabled = null;
@@ -42,25 +44,79 @@ class HasMultipleSources extends Value
         \Magento\Framework\Registry $registry,
         \Magento\Framework\App\Config\ScopeConfigInterface $config,
         \Magento\Framework\App\Cache\TypeListInterface $cacheTypeList,
-        SourceRepositoryInterface $sourceRepository,
         SearchCriteriaBuilder $searchCriteriaBuilder,
         ModuleManager $moduleManager,
+        ObjectManagerInterface $objectManager,
         ?\Magento\Framework\Model\ResourceModel\AbstractResource $resource = null,
         ?\Magento\Framework\Data\Collection\AbstractDb $resourceCollection = null,
         array $data = []
     ) {
-        $this->sourceRepository = $sourceRepository;
         $this->searchCriteriaBuilder = $searchCriteriaBuilder;
         $this->moduleManager = $moduleManager;
+        $this->objectManager = $objectManager;
         parent::__construct($context, $registry, $config, $cacheTypeList, $resource, $resourceCollection, $data);
     }
 
     private function checkMSI()
     {
         if ($this->msiEnabled === null) {
-            $this->msiEnabled = $this->moduleManager->isEnabled('Magento_Inventory') ? 1 : 0;
+            try {
+                $this->msiEnabled = $this->moduleManager->isEnabled('Magento_Inventory')
+                    && interface_exists(self::SOURCE_REPOSITORY)
+                    ? 1
+                    : 0;
+            } catch (\Throwable $e) {
+                $this->msiEnabled = 0;
+            }
         }
         return $this->msiEnabled;
+    }
+
+    private function getSourceRepository()
+    {
+        if (!$this->checkMSI()) {
+            return null;
+        }
+
+        try {
+            return $this->objectManager->get(self::SOURCE_REPOSITORY);
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
+    private function getSourceValue($source, $key)
+    {
+        if (is_array($source) && isset($source[$key])) {
+            return $source[$key];
+        }
+
+        $method = 'get' . str_replace(' ', '', ucwords(str_replace('_', ' ', $key)));
+        if (is_object($source) && method_exists($source, $method)) {
+            return $source->{$method}();
+        }
+
+        return null;
+    }
+
+    private function hasNonDefaultSource(): int
+    {
+        $sourceRepository = $this->getSourceRepository();
+        if ($sourceRepository === null) {
+            return 0;
+        }
+
+        try {
+            foreach ($sourceRepository->getList($this->searchCriteriaBuilder->create())->getItems() as $v) {
+                if ($this->getSourceValue($v, 'source_code') !== 'default') {
+                    return 1;
+                }
+            }
+        } catch (\Throwable $e) {
+            return 0;
+        }
+
+        return 0;
     }
 
     /**
@@ -69,36 +125,14 @@ class HasMultipleSources extends Value
      */
     public function afterLoad()
     {
-        $setMSI = 0;
-
-        if ($this->checkMSI()) {
-            foreach ($this->sourceRepository->getList($this->searchCriteriaBuilder->create())->getItems() as $v) {
-                if ($v['source_code'] !== 'default') {
-                    $setMSI = 1;
-                    break;
-                }
-            }
-        }
-
-        $this->setValue($setMSI);
+        $this->setValue($this->hasNonDefaultSource());
 
         return parent::afterLoad();
     }
 
     public function beforeSave()
     {
-        $setMSI = 0;
-
-        if ($this->checkMSI()) {
-            foreach ($this->sourceRepository->getList($this->searchCriteriaBuilder->create())->getItems() as $v) {
-                if ($v['source_code'] !== 'default') {
-                    $setMSI = 1;
-                    break;
-                }
-            }
-        }
-
-        $this->setValue($setMSI);
+        $this->setValue($this->hasNonDefaultSource());
         return parent::beforeSave();
     }
 }

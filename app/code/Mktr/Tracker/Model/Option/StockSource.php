@@ -12,14 +12,11 @@ namespace Mktr\Tracker\Model\Option;
 
 use Magento\Framework\Api\SearchCriteriaBuilder;
 use Magento\Framework\Module\Manager as ModuleManager;
-use Magento\InventoryApi\Api\SourceRepositoryInterface;
+use Magento\Framework\ObjectManagerInterface;
 
 class StockSource implements \Magento\Framework\Option\ArrayInterface
 {
-    /**
-     * @var SourceRepositoryInterface
-     */
-    private $sourceRepository;
+    private const SOURCE_REPOSITORY = 'Magento\InventoryApi\Api\SourceRepositoryInterface';
 
     /**
      * @var SearchCriteriaBuilder
@@ -32,6 +29,11 @@ class StockSource implements \Magento\Framework\Option\ArrayInterface
     private $moduleManager;
 
     /**
+     * @var ObjectManagerInterface
+     */
+    private $objectManager;
+
+    /**
      * @var bool|null
      */
     private $msiEnabled = null;
@@ -42,25 +44,39 @@ class StockSource implements \Magento\Framework\Option\ArrayInterface
     private $list = null;
 
     public function __construct(
-        SourceRepositoryInterface $sourceRepository,
         SearchCriteriaBuilder $searchCriteriaBuilder,
-        ModuleManager $moduleManager
+        ModuleManager $moduleManager,
+        ObjectManagerInterface $objectManager
     ) {
-        $this->sourceRepository = $sourceRepository;
         $this->searchCriteriaBuilder = $searchCriteriaBuilder;
         $this->moduleManager = $moduleManager;
+        $this->objectManager = $objectManager;
     }
 
     private function checkMSI()
     {
         if ($this->msiEnabled === null) {
             try {
-                $this->msiEnabled = $this->moduleManager->isEnabled('Magento_Inventory');
+                $this->msiEnabled = $this->moduleManager->isEnabled('Magento_Inventory')
+                    && interface_exists(self::SOURCE_REPOSITORY);
             } catch (\Throwable $e) {
                 $this->msiEnabled = false;
             }
         }
         return $this->msiEnabled;
+    }
+
+    private function getSourceRepository()
+    {
+        if (!$this->checkMSI()) {
+            return null;
+        }
+
+        try {
+            return $this->objectManager->get(self::SOURCE_REPOSITORY);
+        } catch (\Throwable $e) {
+            return null;
+        }
     }
 
     private function getSourceValue($source, $key)
@@ -84,9 +100,10 @@ class StockSource implements \Magento\Framework\Option\ArrayInterface
                 ['all' => __('All')],
                 [['value' => 'all', 'label' => __('All')]]
             ];
-            if ($this->checkMSI()) {
+            $sourceRepository = $this->getSourceRepository();
+            if ($sourceRepository !== null) {
                 try {
-                    foreach ($this->sourceRepository->getList($this->searchCriteriaBuilder->create())->getItems() as $v) {
+                    foreach ($sourceRepository->getList($this->searchCriteriaBuilder->create())->getItems() as $v) {
                         $sourceCode = $this->getSourceValue($v, 'source_code');
                         $name = $this->getSourceValue($v, 'name');
 

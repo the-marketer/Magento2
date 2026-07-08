@@ -11,32 +11,39 @@
 namespace Mktr\Tracker\Model\Inventory;
 
 use Magento\Framework\Module\Manager as ModuleManager;
-use Magento\InventoryApi\Api\GetSourceItemsBySkuInterface;
+use Magento\Framework\ObjectManagerInterface;
 use Mktr\Tracker\Api\SourceItemsBySkuResolverInterface;
 
 class SourceItemsBySkuResolver implements SourceItemsBySkuResolverInterface
 {
+    private const SOURCE_ITEMS_BY_SKU = 'Magento\InventoryApi\Api\GetSourceItemsBySkuInterface';
+
     /**
      * @var ModuleManager
      */
     private $moduleManager;
 
     /**
-     * @var GetSourceItemsBySkuInterface
+     * @var ObjectManagerInterface
      */
-    private $sourceItemsBySku;
+    private $objectManager;
 
     public function __construct(
         ModuleManager $moduleManager,
-        GetSourceItemsBySkuInterface $sourceItemsBySku
+        ObjectManagerInterface $objectManager
     ) {
         $this->moduleManager = $moduleManager;
-        $this->sourceItemsBySku = $sourceItemsBySku;
+        $this->objectManager = $objectManager;
     }
 
     public function isEnabled(): bool
     {
-        return $this->moduleManager->isEnabled('Magento_Inventory');
+        try {
+            return $this->moduleManager->isEnabled('Magento_Inventory')
+                && interface_exists(self::SOURCE_ITEMS_BY_SKU);
+        } catch (\Throwable $e) {
+            return false;
+        }
     }
 
     public function execute(string $sku): array
@@ -45,6 +52,10 @@ class SourceItemsBySkuResolver implements SourceItemsBySkuResolverInterface
             return [];
         }
 
-        return $this->sourceItemsBySku->execute($sku);
+        try {
+            return $this->objectManager->get(self::SOURCE_ITEMS_BY_SKU)->execute($sku);
+        } catch (\Throwable $e) {
+            return [];
+        }
     }
 }
