@@ -7,6 +7,7 @@ MAGENTO_ROOT="${MAGENTO_ROOT:-/var/www/html}"
 PHP_BIN="${PHP_BIN:-php -d memory_limit=-1}"
 SKIP_BUILD=0
 SKIP_COMPILE=0
+SKIP_STATIC=0
 BRANCH_FROM_ARGS=0
 
 reexec_from_temp() {
@@ -27,8 +28,8 @@ reexec_from_temp() {
 usage() {
   cat <<'USAGE'
 Usage:
-  scripts/deploy-magento2.sh <branch> [--no-build] [--no-compile]
-  scripts/deploy-magento2.sh --branch <branch> [--no-build] [--no-compile]
+  scripts/deploy-magento2.sh <branch> [--no-build] [--no-compile] [--no-static]
+  scripts/deploy-magento2.sh --branch <branch> [--no-build] [--no-compile] [--no-static]
 
 Run this inside the Magento Docker container. The script attaches the Magento
 root to the Git repository if needed, fetches the requested branch, resets the
@@ -45,6 +46,7 @@ Options:
   --no-build    Pull the code only; skip Magento build commands.
   --sync-only   Alias for --no-build, kept for older notes.
   --no-compile  Skip setup:di:compile; useful on low-memory containers.
+  --no-static   Skip setup:static-content:deploy; useful when assets already exist.
 USAGE
 }
 
@@ -67,6 +69,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --no-compile)
       SKIP_COMPILE=1
+      shift
+      ;;
+    --no-static)
+      SKIP_STATIC=1
       shift
       ;;
     -h|--help)
@@ -279,6 +285,23 @@ EOF
   return "$compile_status"
 }
 
+run_static_deploy() {
+  set +e
+  magento setup:static-content:deploy -f
+  local static_status="$?"
+  set -e
+
+  if [[ "$static_status" -eq 137 ]]; then
+    cat >&2 <<EOF
+setup:static-content:deploy was killed by the container, most likely because it ran out of memory.
+Retry with:
+  scripts/deploy-magento2.sh $BRANCH --no-compile --no-static
+EOF
+  fi
+
+  return "$static_status"
+}
+
 run_build() {
   magento module:enable --clear-static-content Mktr_Tracker Mktr_Google
   setup_upgrade_without_elasticsearch
@@ -288,8 +311,12 @@ run_build() {
     run_di_compile
   fi
   magento cache:flush
-  magento setup:static-content:deploy -f
-  publish_static_version_dir
+  if [[ "$SKIP_STATIC" -eq 1 ]]; then
+    echo "Skipping setup:static-content:deploy because --no-static was passed."
+  else
+    run_static_deploy
+    publish_static_version_dir
+  fi
   magento cache:clean
   chmod -R 777 "$MAGENTO_ROOT"
   magento setup:db:status

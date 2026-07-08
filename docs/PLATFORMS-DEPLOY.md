@@ -111,6 +111,20 @@ compilare:
 Scriptul va rula in continuare `setup:upgrade`, cache flush, static deploy si
 verificarile finale.
 
+## Fara static deploy
+
+Daca deploy-ul ajunge la `setup:static-content:deploy` si procesul este omorat
+cu `Killed`, containerul a ramas fara memorie si la generarea asset-urilor.
+Pentru modificari care nu adauga CSS/JS/images noi poti sari peste static
+deploy:
+
+```sh
+./scripts/deploy-magento2.sh refactoring --no-compile --no-static
+```
+
+Scriptul va rula in continuare `setup:upgrade`, cache flush si verificarile
+finale.
+
 ## Build Magento rulat dupa Git update
 
 Scriptul ruleaza in container:
