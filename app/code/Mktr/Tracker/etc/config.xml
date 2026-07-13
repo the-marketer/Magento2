@@ -36,6 +36,11 @@
                 <color>color</color>
                 <size>size</size>
             </attribute>
+            <oauth>
+                <authorize_url>https://app.themarketer.com/oauth/plugin-connect</authorize_url>
+                <token_url>https://t.themarketer.com/api/v1/plugin-oauth/token</token_url>
+                <client_id>plugin-magento2</client_id>
+            </oauth>
         </mktr_tracker>
     </default>
 </config>
