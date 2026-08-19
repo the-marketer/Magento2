@@ -12,7 +12,9 @@
 namespace Mktr\Tracker\Model;
 
 use Magento\Store\Api\StoreRepositoryInterface;
-use Mktr\Tracker\Helper\Data;
+use Magento2\app\code\Mktr\Tracker\Helper\Data;
+use Psr\Log\LoggerInterface;
+use Throwable;
 
 class Cron
 {
@@ -26,10 +28,19 @@ class Cron
      */
     private $storeRepository;
 
-    public function __construct(Data $helper, StoreRepositoryInterface $storeRepository)
-    {
+    /**
+     * @var LoggerInterface
+     */
+    private $logger;
+
+    public function __construct(
+        Data $helper,
+        StoreRepositoryInterface $storeRepository,
+        LoggerInterface $logger
+    ) {
         $this->helper = $helper;
         $this->storeRepository = $storeRepository;
+        $this->logger = $logger;
     }
 
     public function execute()
@@ -46,26 +57,56 @@ class Cron
 
                 if ($this->helper->getConfig->getStatus() != 0) {
                     if ($this->helper->getConfig->getCronFeed() != 0 && $upFeed < time()) {
-                        $this->helper->getFunc->Write($this->helper->getPagesFeed);
-
-                        $this->helper->getData->update_feed =
-                            strtotime("+" . $this->helper->getConfig->getUpdateFeed() . " hour");
+                        $this->runStoreJob(
+                            'feed',
+                            $k->getId(),
+                            function () {
+                                $this->helper->getFunc->Write($this->helper->getPagesFeed);
+                                $this->helper->getData->update_feed =
+                                    strtotime("+" . $this->helper->getConfig->getUpdateFeed() . " hour");
+                            }
+                        );
                     }
 
                     if ($this->helper->getConfig->getCronReview() != 0 && $upReview < time()) {
-                        $this->helper->getPagesReviews->execute();
-                        $this->helper->getData->update_review =
-                            strtotime("+" . $this->helper->getConfig->getUpdateReview() . " hour");
+                        $this->runStoreJob(
+                            'review',
+                            $k->getId(),
+                            function () {
+                                $this->helper->getPagesReviews->execute();
+                                $this->helper->getData->update_review =
+                                    strtotime("+" . $this->helper->getConfig->getUpdateReview() . " hour");
+                            }
+                        );
                     }
                     if ($this->helper->getConfig->getCronSubscribe() != 0 && $upSubscribe < time()) {
-                        $this->helper->getPagesSubscribes->execute();
-                        $this->helper->getData->update_subscribe =
-                            strtotime("+" . $this->helper->getConfig->getUpdateSubscribe() . " hour");
+                        $this->runStoreJob(
+                            'subscribe',
+                            $k->getId(),
+                            function () {
+                                $this->helper->getPagesSubscribes->execute();
+                                $this->helper->getData->update_subscribe =
+                                    strtotime("+" . $this->helper->getConfig->getUpdateSubscribe() . " hour");
+                            }
+                        );
                     }
                 }
             }
         }
 
         $this->helper->getData->save();
+    }
+
+    private function runStoreJob(string $job, $storeId, callable $callback): void
+    {
+        try {
+            $callback();
+        } catch (Throwable $e) {
+            $this->logger->error('TheMarketer cron job failed', [
+                'job' => $job,
+                'store_id' => $storeId,
+                'message' => $e->getMessage()
+            ]);
+        }
     }
 }

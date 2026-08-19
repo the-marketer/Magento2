@@ -37,7 +37,7 @@ class Api
     /**
      * @var int
      */
-    private $timeOut = 1;
+    private $timeOut = 30;
 
     /**
      * @var array|null

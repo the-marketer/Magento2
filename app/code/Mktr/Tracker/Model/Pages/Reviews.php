@@ -13,7 +13,7 @@ namespace Mktr\Tracker\Model\Pages;
 use Magento\Review\Model\Rating;
 use Magento\Review\Model\Review;
 use Magento\Store\Api\StoreRepositoryInterface;
-use Mktr\Tracker\Helper\Data;
+use Magento2\app\code\Mktr\Tracker\Helper\Data;
 use Mktr\Tracker\Model\Config;
 use Mktr\Tracker\Model\ReviewLogs;
 
@@ -90,7 +90,7 @@ class Reviews
     public function execute()
     {
         $xml = ['execute' => 'none'];
-        $t = $this->helper->getRequest->getParam("start_date") ?? date('Y-m-d');
+        $t = $this->helper->getRequest->getParam("start_date") ?? date('Y-m-d', strtotime('-7 days'));
         $o = $this->helper->getApi->send("product_reviews", ['t' => strtotime($t)], false);
 
         if ($o->getContent() == 'Access not allowed' || $o->getContent() == 'false' || $o->getContent() == false) {
