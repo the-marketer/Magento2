@@ -3,12 +3,16 @@
  * @copyright   Copyright (c) 2023 TheMarketer.com
  * @project     TheMarketer.com
  * @website     https://themarketer.com/
- * @author      Alexandru Buzica (EAX LEX S.R.L.) <b.alex@eax.ro>
+ * @author      TheMarketer
  * @license     http://opensource.org/licenses/osl-3.0.php - Open Software License (OSL 3.0)
  * @docs        https://themarketer.com/resources/api
  */
 
 namespace Mktr\Tracker\Model;
+
+use Magento\Framework\App\Config\ScopeConfigInterface;
+use Magento\Framework\Encryption\EncryptorInterface;
+use Magento\Store\Model\StoreManagerInterface;
 
 class Config
 {
@@ -17,6 +21,7 @@ class Config
     const DATE_START_FORMAT = "Y-m-d 00:00:00";
     const DATE_END_FORMAT = "Y-m-d 23:59:59";
 
+    // Firebase web config values are public project identifiers, not secret credentials.
     const FireBase = 'const firebaseConfig = {
   apiKey: "AIzaSyA3c9lHIzPIvUciUjp1U2sxoTuaahnXuHw",
   projectId: "themarketer-e5579",
@@ -28,8 +33,8 @@ firebase.initializeApp(firebaseConfig);';
 importScripts("https://www.gstatic.com/firebasejs/9.4.0/firebase-messaging-compat.js");
 importScripts("./firebase-config.js");
 importScripts("https://t.themarketer.com/firebase.js");';
-/* TODO: LINK */
-    private static $loader = '(function(d, s, i) { var f = d.getElementsByTagName(s)[0], j = d.createElement(s);j.async = true; j.src = "https://t.themarketer.com/t/j/" + i; f.parentNode.insertBefore(j, f);})(document, "script", "%s")';
+
+    private const LOADER = '(function(d, s, i) { var f = d.getElementsByTagName(s)[0], j = d.createElement(s);j.async = true; j.src = "https://t.themarketer.com/t/j/" + i; f.parentNode.insertBefore(j, f);})(document, "script", %s)';
 
     const configNames = [
         'status' => 'mktr_tracker/tracker/status',
@@ -69,7 +74,11 @@ importScripts("https://t.themarketer.com/firebase.js");';
         'stock_source' => 'all'
     ];
 
-    private static $configValues = [];
+    private const SENSITIVE_CONFIG_NAMES = [
+        'tracking_key' => true,
+        'rest_key' => true,
+        'customer_id' => true
+    ];
 
     const observerGetEvents = [
         "addToCart"=> [false, "__sm__add_to_cart"],
@@ -80,227 +89,302 @@ importScripts("https://t.themarketer.com/firebase.js");';
         "setEmail"=> [true, "__sm__set_email"]
     ];
 
-    private static $scopeCode = null;   // 'default';
-
-    private static $ins = [
-        "Help" => null,
-        "Config" => null
-    ];
-
     const discountRules = [
         0 => "fixedValue",
         1 => "percentage",
         2 => "freeShipping"
     ];
 
+    /**
+     * @var ScopeConfigInterface
+     */
+    private $scopeConfig;
+
+    /**
+     * @var StoreManagerInterface
+     */
+    private $storeManager;
+
+    /**
+     * @var EncryptorInterface
+     */
+    private $encryptor;
+
+    /**
+     * @var array<int|string, array<string, mixed>>
+     */
+    private $configCache = [];
+
+    /**
+     * @var int|string|null
+     */
+    private $scopeCode = null;
+
+    public function __construct(
+        ScopeConfigInterface $scopeConfig,
+        StoreManagerInterface $storeManager,
+        EncryptorInterface $encryptor
+    ) {
+        $this->scopeConfig = $scopeConfig;
+        $this->storeManager = $storeManager;
+        $this->encryptor = $encryptor;
+    }
+
     /** @noinspection PhpUnused */
-    public static function getDiscountRules()
+    public function getDiscountRules(): array
     {
         return self::discountRules;
     }
 
-    private static $configData = null;
-
     /** @noinspection PhpUnused */
-    public static function getDateStart()
+    public function getDateStart(): string
     {
         return self::DATE_START_FORMAT;
     }
 
     /** @noinspection PhpUnused */
-    public static function getDateEnd()
+    public function getDateEnd(): string
     {
         return self::DATE_END_FORMAT;
     }
 
     /** @noinspection PhpUnused */
-    public static function getEventsObs()
+    public function getEventsObs(): array
     {
         return self::observerGetEvents;
     }
 
     /** @noinspection PhpUnused */
-    public static function getLoader(): string
+    public function getLoader(): string
     {
-        return self::$loader;
+        return self::LOADER;
     }
+
     /** @noinspection PhpUnused */
-    public static function getFireBase(): string
+    public function getFireBase(): string
     {
         return self::FireBase;
     }
+
     /** @noinspection PhpUnused */
-    public static function getFireBaseMessaging(): string
+    public function getFireBaseMessaging(): string
     {
         return self::FireBaseMessaging;
     }
 
-    /** TODO: Magento 2 */
-    public static function getHelp()
+    /**
+     * @param int|string $store
+     */
+    public function setScopeCode($store): void
     {
-        if (self::$ins["Help"] == null) {
-            self::$ins["Help"] = \Magento\Framework\App\ObjectManager::getInstance()->get('\Mktr\Tracker\Helper\Data');
+        $this->scopeCode = $store;
+    }
+
+    public function getScopeCode()
+    {
+        if ($this->scopeCode === null) {
+            $this->scopeCode = $this->storeManager->getStore()->getId();
         }
-        return self::$ins["Help"];
+
+        return $this->scopeCode;
     }
 
-    /** TODO: Magento 2 */
-    private static function getConfig()
+    private function getScopeCacheKey()
     {
-        if (self::$configData == null) {
-            self::$configData = \Magento\Framework\App\ObjectManager::getInstance()->get("\Magento\Framework\App\Config\ScopeConfigInterface");
-        }
-        return self::$configData;
+        return (string) $this->getScopeCode();
     }
 
-    /** @noinspection PhpUnused */
-    public static function setScopeCode($store)
-    {
-        self::$configValues = [];
-        self::$scopeCode = $store;
-    }
-
-    /** @noinspection PhpUnused */
-    public static function getScopeCode()
-    {
-        if (self::$scopeCode == null) {
-            self::$scopeCode = self::getHelp()->getStore->getStoreId();
-        }
-        return self::$scopeCode;
-    }
-
-    public static function getStoreValue($name, $store)
+    public function getStoreValue($name, $store)
     {
         if (isset(self::configNames[$name])) {
-            return self::getConfig()->getValue(self::configNames[$name], self::scopeType, $store);
-        } else {
-            return self::getConfig()->getValue($name, self::scopeType, $store);
+            $value = $this->scopeConfig->getValue(self::configNames[$name], self::scopeType, $store);
+
+            if (isset(self::SENSITIVE_CONFIG_NAMES[$name])) {
+                return $this->decryptConfigValue($value);
+            }
+
+            return $value;
         }
+
+        return $this->scopeConfig->getValue($name, self::scopeType, $store);
     }
 
-    public static function getValue($name)
+    public function decryptSensitiveValue($value)
     {
-        if (empty(self::$configValues[$name])) {
+        return $this->decryptConfigValue($value);
+    }
+
+    public function getValue($name)
+    {
+        $scopeKey = $this->getScopeCacheKey();
+
+        if (!array_key_exists($scopeKey, $this->configCache)) {
+            $this->configCache[$scopeKey] = [];
+        }
+
+        if (!array_key_exists($name, $this->configCache[$scopeKey])) {
             if (isset(self::configNames[$name])) {
-                self::$configValues[$name] = self::getConfig()->getValue(self::configNames[$name], self::scopeType, self::getScopeCode());
-                if (in_array($name, ['color','size','brand'])) {
-                    self::$configValues[$name] = !empty(self::$configValues[$name]) ? explode("|", self::$configValues[$name]) : [];
+                $this->configCache[$scopeKey][$name] = $this->scopeConfig->getValue(
+                    self::configNames[$name],
+                    self::scopeType,
+                    $this->getScopeCode()
+                );
+                if (isset(self::SENSITIVE_CONFIG_NAMES[$name])) {
+                    $this->configCache[$scopeKey][$name] = $this->decryptConfigValue(
+                        $this->configCache[$scopeKey][$name]
+                    );
+                }
+
+                if (in_array($name, ['color', 'size', 'brand'], true)) {
+                    $this->configCache[$scopeKey][$name] = $this->configCache[$scopeKey][$name] !== null
+                        && $this->configCache[$scopeKey][$name] !== ''
+                        ? explode("|", $this->configCache[$scopeKey][$name])
+                        : [];
                 }
             } else {
-                self::$configValues[$name] = self::getConfig()->getValue($name, self::scopeType, self::getScopeCode());
+                $this->configCache[$scopeKey][$name] = $this->scopeConfig->getValue(
+                    $name,
+                    self::scopeType,
+                    $this->getScopeCode()
+                );
             }
         }
 
-        return self::$configValues[$name];
+        return $this->configCache[$scopeKey][$name];
+    }
+
+    private function decryptConfigValue($value)
+    {
+        if ($value === null || $value === '') {
+            return $value;
+        }
+
+        $value = (string) $value;
+
+        if (!preg_match('/^\d+:\d+:/', $value)) {
+            return $value;
+        }
+
+        try {
+            $decrypted = $this->encryptor->decrypt($value);
+        } catch (\Exception $e) {
+            return '';
+        }
+
+        return $decrypted !== '' ? $decrypted : '';
     }
 
     /** @noinspection PhpUnused */
-    public static function getStatus(): int
+    public function getStatus(): int
     {
-        return (int) self::getValue('status');
+        return (int) $this->getValue('status');
     }
 
     /** @noinspection PhpUnused */
-    public static function getKey()
+    public function getKey()
     {
-        return self::getValue('tracking_key');
+        return $this->getValue('tracking_key');
     }
 
     /** @noinspection PhpUnused */
-    public static function getRestKey()
+    public function getRestKey()
     {
-        return self::getValue('rest_key');
+        return $this->getValue('rest_key');
     }
 
     /** @noinspection PhpUnused */
-    public static function getOptIn(): int
+    public function getOptIn(): int
     {
-        return (int) self::getValue('opt_in');
+        return (int) $this->getValue('opt_in');
     }
 
     /** @noinspection PhpUnused */
-    public static function getPushStatus(): int
+    public function getPushStatus(): int
     {
-        return (int) self::getValue('push_status');
+        return (int) $this->getValue('push_status');
     }
 
     /** @noinspection PhpUnused */
-    public static function getDefaultStock(): int
+    public function getDefaultStock(): int
     {
-        return (int) self::getValue('default_stock');
+        return (int) $this->getValue('default_stock');
     }
 
     /** @noinspection PhpUnused */
-    public static function getAllowExport(): int
+    public function getAllowExport(): int
     {
-        return (int) self::getValue('allow_export');
+        return (int) $this->getValue('allow_export');
     }
 
     /** @noinspection PhpUnused */
-    public static function getCustomerId()
+    public function getCustomerId()
     {
-        return self::getValue('customer_id');
+        return $this->getValue('customer_id');
     }
 
     /** @noinspection PhpUnused */
-    public static function getBrandAttribute()
+    public function getBrandAttribute()
     {
-        return self::getValue('brand');
+        return $this->getValue('brand');
     }
 
     /** @noinspection PhpUnused */
-    public static function getColorAttribute()
+    public function getColorAttribute()
     {
-        return self::getValue('color');
+        return $this->getValue('color');
     }
 
     /** @noinspection PhpUnused */
-    public static function getSizeAttribute()
+    public function getSizeAttribute()
     {
-        return self::getValue('size');
-    }
-    /** @noinspection PhpUnused */
-    public static function getCronFeed()
-    {
-        return (int) self::getValue('cron_feed');
+        return $this->getValue('size');
     }
 
     /** @noinspection PhpUnused */
-    public static function getSelectors()
+    public function getCronFeed(): int
     {
-        return self::getValue('selectors');
+        return (int) $this->getValue('cron_feed');
     }
 
     /** @noinspection PhpUnused */
-    public static function getUpdateFeed()
+    public function getSelectors()
     {
-        return self::getValue('update_feed');
+        return $this->getValue('selectors');
     }
 
     /** @noinspection PhpUnused */
-    public static function getCronReview()
+    public function getUpdateFeed()
     {
-        return (int) self::getValue('cron_review');
-    }
-    /** @noinspection PhpUnused */
-    public static function getCronSubscribe()
-    {
-        return (int) self::getValue('cron_subscribe');
+        return $this->getValue('update_feed');
     }
 
     /** @noinspection PhpUnused */
-    public static function getUpdateReview()
+    public function getCronReview(): int
     {
-        return self::getValue('update_review');
+        return (int) $this->getValue('cron_review');
     }
+
     /** @noinspection PhpUnused */
-    public static function getUpdateSubscribe()
+    public function getCronSubscribe(): int
     {
-        return self::getValue('update_subscribe');
+        return (int) $this->getValue('cron_subscribe');
     }
+
     /** @noinspection PhpUnused */
-    public static function getStockSource()
+    public function getUpdateReview()
     {
-        return self::getValue('stock_source');
+        return $this->getValue('update_review');
+    }
+
+    /** @noinspection PhpUnused */
+    public function getUpdateSubscribe()
+    {
+        return $this->getValue('update_subscribe');
+    }
+
+    /** @noinspection PhpUnused */
+    public function getStockSource()
+    {
+        return $this->getValue('stock_source');
     }
 }

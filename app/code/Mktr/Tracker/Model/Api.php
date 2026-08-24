@@ -5,138 +5,153 @@
  * @copyright   Copyright (c) 2023 TheMarketer.com
  * @project     TheMarketer.com
  * @website     https://themarketer.com/
- * @author      Alexandru Buzica (EAX LEX S.R.L.) <b.alex@eax.ro>
+ * @author      TheMarketer
  * @license     http://opensource.org/licenses/osl-3.0.php - Open Software License (OSL 3.0)
  * @docs        https://themarketer.com/resources/api
  */
 
 namespace Mktr\Tracker\Model;
 
+use Magento\Framework\HTTP\Client\Curl;
+use Psr\Log\LoggerInterface;
+
 class Api
 {
-    private static $ins = [
-        "Help" => null,
-        "Config" => null
-    ];
+    private const API_URL = "https://t.themarketer.com/api/v1/";
 
-    private static $mURL = "https://t.themarketer.com/api/v1/";
-    // private static $mURL = "https://eaxdev.ga/mktr/EventsTrap/";
-    private static $bURL = "https://eaxdev.ga/mktr/BugTrap";
+    /**
+     * @var Config
+     */
+    private $config;
 
-    private static $timeOut = null;
+    /**
+     * @var Curl
+     */
+    private $httpClient;
 
-    private static $cURL = null;
+    /**
+     * @var LoggerInterface
+     */
+    private $logger;
 
-    private static $params = null;
-    private static $lastUrl = null;
+    /**
+     * @var int
+     */
+    private $timeOut = 30;
 
-    private static $info = null;
-    private static $exec = null;
-    private static $requestType = null;
+    /**
+     * @var array|null
+     */
+    private $params;
 
-    private static $return = null;
+    /**
+     * @var string|null
+     */
+    private $lastUrl;
 
-    public function __construct()
-    {
-        self::$return = $this;
-    }
-    /** TODO: Magento 2 */
-    public static function getConfig()
-    {
-        if (self::$ins["Config"] == null) {
-            self::$ins["Config"] = \Magento\Framework\App\ObjectManager::getInstance()->get("\Mktr\Tracker\Model\Config");
-        }
-        return self::$ins["Config"];
-    }
+    /**
+     * @var array|null
+     */
+    private $info;
 
-    /** @noinspection PhpUnused */
-    public static function send($name, $data = [], $post = true)
-    {
-        return self::REST(self::$mURL . $name, $data, $post);
-    }
+    /**
+     * @var string|null
+     */
+    private $body;
 
-    /** @noinspection PhpUnused */
-    public static function debug($data = [], $post = true)
-    {
-        return self::REST(self::$bURL, $data, $post);
-    }
+    /**
+     * @var bool|null
+     */
+    private $requestType;
 
-    /** @noinspection PhpUnused */
-    public static function getParam()
-    {
-        return self::$params;
-    }
-
-    /** @noinspection PhpUnused */
-    public static function getUrl()
-    {
-        return self::$lastUrl;
+    public function __construct(
+        Config $config,
+        Curl $httpClient,
+        LoggerInterface $logger
+    ) {
+        $this->config = $config;
+        $this->httpClient = $httpClient;
+        $this->logger = $logger;
     }
 
     /** @noinspection PhpUnused */
-    public static function getStatus()
+    public function send($name, $data = [], $post = true)
     {
-        return self::$info["http_code"];
+        return $this->REST(self::API_URL . $name, $data, $post);
     }
 
     /** @noinspection PhpUnused */
-    public static function getContent()
+    public function getParam()
     {
-        return self::$exec;
+        return $this->params;
     }
 
-    public static function getBody()
+    /** @noinspection PhpUnused */
+    public function getUrl()
     {
-        return self::$exec;
+        return $this->lastUrl;
     }
 
-    public static function REST($url, $data = [], $post = true)
+    /** @noinspection PhpUnused */
+    public function getStatus()
     {
+        return $this->info["http_code"] ?? 0;
+    }
+
+    /** @noinspection PhpUnused */
+    public function getContent()
+    {
+        return $this->body;
+    }
+
+    public function getBody()
+    {
+        return $this->body;
+    }
+
+    public function REST($url, $data = [], $post = true)
+    {
+        $this->body = null;
+        $this->info = ['http_code' => 0];
+        $this->lastUrl = $url;
+        $this->requestType = $post;
+
         try {
-            if (empty(self::getConfig()->getRestKey())) {
-                return false;
+            if (empty($this->config->getRestKey())) {
+                return $this;
             }
 
-            if (self::$timeOut == null) {
-                self::$timeOut = 1;
-            }
-
-            self::$params = array_merge([
-                'k' => self::getConfig()->getRestKey(),
-                'u' => self::getConfig()->getCustomerId()
+            $this->params = array_merge([
+                'k' => $this->config->getRestKey(),
+                'u' => $this->config->getCustomerId()
             ], $data);
 
-
-            self::$requestType = $post;
-
-            if (self::$requestType) {
-                self::$lastUrl = $url;
+            if ($this->requestType) {
+                $this->lastUrl = $url;
             } else {
-                self::$lastUrl = $url .'?'. http_build_query(self::$params);
+                $this->lastUrl = $url . '?' . http_build_query($this->params);
             }
 
-            self::$cURL = \curl_init();
+            $this->httpClient->setOption(CURLOPT_CONNECTTIMEOUT, $this->timeOut);
+            $this->httpClient->setOption(CURLOPT_TIMEOUT, $this->timeOut);
+            $this->httpClient->setOption(CURLOPT_SSL_VERIFYPEER, true);
+            $this->httpClient->setOption(CURLOPT_SSL_VERIFYHOST, 2);
 
-            \curl_setopt(self::$cURL, CURLOPT_CONNECTTIMEOUT, self::$timeOut);
-            \curl_setopt(self::$cURL, CURLOPT_TIMEOUT, self::$timeOut);
-            \curl_setopt(self::$cURL, CURLOPT_URL, self::$lastUrl);
-            \curl_setopt(self::$cURL, CURLOPT_POST, self::$requestType);
-
-            if (self::$requestType) {
-                \curl_setopt(self::$cURL, CURLOPT_POSTFIELDS, http_build_query(self::$params));
+            if ($this->requestType) {
+                $this->httpClient->post($this->lastUrl, $this->params);
+            } else {
+                $this->httpClient->get($this->lastUrl);
             }
 
-            \curl_setopt(self::$cURL, CURLOPT_RETURNTRANSFER, true);
-            \curl_setopt(self::$cURL, CURLOPT_SSL_VERIFYPEER, false);
-
-            self::$exec = \curl_exec(self::$cURL);
-
-            self::$info = \curl_getinfo(self::$cURL);
-
-            \curl_close(self::$cURL);
+            $this->body = $this->httpClient->getBody();
+            $this->info = ['http_code' => $this->httpClient->getStatus()];
         } catch (\Exception $e) {
-
+            $this->logger->warning('TheMarketer API request failed', [
+                'url' => $url,
+                'message' => $e->getMessage()
+            ]);
         }
-        return self::$return;
+
+        return $this;
     }
 }

@@ -4,7 +4,7 @@
  * @copyright   Copyright (c) 2023 TheMarketer.com
  * @project     TheMarketer.com
  * @website     https://themarketer.com/
- * @author      Alexandru Buzica (EAX LEX S.R.L.) <b.alex@eax.ro>
+ * @author      TheMarketer
  * @license     http://opensource.org/licenses/osl-3.0.php - Open Software License (OSL 3.0)
  * @docs        https://themarketer.com/resources/api
  */
@@ -27,28 +27,28 @@
                     <label>Enable</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                 </field>
-                <field id="tracking_key" translate="label" type="text" sortOrder="20"
+                <field id="connect" translate="label" type="button" sortOrder="15"
+                       showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Connect</label>
+                    <frontend_model>Mktr\Tracker\Block\Adminhtml\System\Config\Connect</frontend_model>
+                    <comment><![CDATA[Sign in to theMarketer and import your credentials automatically.]]></comment>
+                </field>
+                <field id="tracking_key" translate="label" type="obscure" sortOrder="20"
                        showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Tracking API Key</label>
-                    <depends>
-                        <field id="*/*/status">1</field>
-                    </depends>
+                    <backend_model>Magento\Config\Model\Config\Backend\Encrypted</backend_model>
                     <comment><![CDATA[Your Tracking API Key.]]></comment>
                 </field>
-                <field id="rest_key" translate="label" type="text" sortOrder="30"
+                <field id="rest_key" translate="label" type="obscure" sortOrder="30"
                        showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>REST API Key</label>
-                    <depends>
-                        <field id="*/*/status">1</field>
-                    </depends>
+                    <backend_model>Magento\Config\Model\Config\Backend\Encrypted</backend_model>
                     <comment><![CDATA[Your REST API Key.]]></comment>
                 </field>
-                <field id="customer_id" translate="label" type="text" sortOrder="30"
+                <field id="customer_id" translate="label" type="obscure" sortOrder="30"
                        showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Customer ID</label>
-                    <depends>
-                        <field id="*/*/status">1</field>
-                    </depends>
+                    <backend_model>Magento\Config\Model\Config\Backend\Encrypted</backend_model>
                     <comment><![CDATA[Your Customer ID.]]></comment>
                 </field>
                 <field id="cron_feed" translate="label" type="select" sortOrder="31"
@@ -107,13 +107,7 @@
                 <field id="stock_source" translate="label" type="select" sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Stock Source</label>
                     <source_model>Mktr\Tracker\Model\Option\StockSource</source_model>
-                    <depends>
-                        <field id="*/*/has_multiple_sources">1</field>
-                    </depends>
                     <comment><![CDATA[Select Stock Source MSI, Default: All]]></comment>
-                </field>
-                <field id="has_multiple_sources" type="hidden" showInDefault="1" showInWebsite="1" showInStore="1">
-                    <backend_model>Mktr\Tracker\Model\Option\HasMultipleSources</backend_model>
                 </field>
                 <field id="push_status" translate="label" type="select" sortOrder="41" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Push Notification</label>
@@ -134,6 +128,11 @@
                        showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Trigger Selectors</label>
                     <comment><![CDATA[Buttons that will trigger events Like AddToCart]]></comment>
+                </field>
+                <field id="test_connection" translate="label" type="button" sortOrder="46"
+                       showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Test connection</label>
+                    <frontend_model>Mktr\Tracker\Block\Adminhtml\System\Config\TestConnection</frontend_model>
                 </field>
             </group>
             <group id="attribute" translate="label" type="text" sortOrder="11"

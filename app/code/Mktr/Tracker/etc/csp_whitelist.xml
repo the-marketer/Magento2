@@ -5,6 +5,7 @@
             <values>
                 <value id="themarketer" type="host">t.themarketer.com</value>
                 <value id="themarketercdn" type="host">cdn1.themarketer.com</value>
+                <value id="google-gstatic" type="host">www.gstatic.com</value>
             </values>
         </policy>
         <policy id="style-src">

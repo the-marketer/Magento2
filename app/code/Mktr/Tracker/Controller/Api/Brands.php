@@ -3,82 +3,61 @@
  * @copyright   Copyright (c) 2023 TheMarketer.com
  * @project     TheMarketer.com
  * @website     https://themarketer.com/
- * @author      Alexandru Buzica (EAX LEX S.R.L.) <b.alex@eax.ro>
+ * @author      TheMarketer
  * @license     http://opensource.org/licenses/osl-3.0.php - Open Software License (OSL 3.0)
  * @docs        https://themarketer.com/resources/api
  */
 
 namespace Mktr\Tracker\Controller\Api;
 
-use Magento\Framework\App\Action\Action;
-use Magento\Framework\App\Action\Context;
+use Magento\Framework\App\Action\HttpGetActionInterface;
 use Mktr\Tracker\Helper\Data;
 
-class Brands extends Action
+class Brands implements HttpGetActionInterface
 {
-    // private static $cons = null;
-    private static $ins = [
-        "Help" => null
-    ];
+    /**
+     * @var Data
+     */
+    private $helper;
 
-    private static $error = null;
-    private static $fileName = "brands";
-    private static $secondName = "brand";
+    private $fileName = "brands";
+    private $secondName = "brand";
 
-    private static $data;
-    private static $url;
-
-    public function __construct(Context $context, Data $help)
+    public function __construct(Data $helper)
     {
-        parent::__construct($context);
-        self::$ins['Help'] = $help;
+        $this->helper = $helper;
     }
 
-    /** TODO: Magento 2 */
-    public static function getHelp()
-    {
-        if (self::$ins["Help"] == null) {
-            self::$ins["Help"] = \Magento\Framework\App\ObjectManager::getInstance()->get('\Mktr\Tracker\Helper\Data');
-        }
-        return self::$ins["Help"];
-    }
-
-    private static function status()
-    {
-        return self::$error == null;
-    }
-
-    /** @noinspection PhpUnused */
     public function execute()
     {
-        self::$error =  self::getHelp()->getFunc->isParamValid([
-            'key' => 'Required|Key'
+        $error = $this->helper->getFunc->isParamValid([
+            'key' => 'KeyAuth'
         ]);
 
-        if ($this->status()) {
-            return self::getHelp()->getFunc->readOrWrite(self::$fileName, self::$secondName, $this);
+        if ($error === null) {
+            return $this->helper->getFunc->readOrWrite($this->fileName, $this->secondName, $this);
         }
 
-        return self::getHelp()->getFunc->Output('status', self::$error);
+        return $this->helper->getFunc->Output('status', $error);
     }
 
-    public static function freshData(): array
+    public function freshData(): array
     {
-        $brandAttribute = self::getHelp()->getConfig->getBrandAttribute();
-        self::$url = self::getHelp()->getBaseUrl . 'catalogsearch/result/?q=';
-        self::$data = [];
+        $brandAttribute = $this->helper->getConfig->getBrandAttribute();
+        $url = $this->helper->getBaseUrl . 'catalogsearch/result/?q=';
+        $data = [];
         foreach ($brandAttribute as $item) {
-            foreach (self::getHelp()->getBrands->get($item)->getOptions() as $option) {
+            foreach ($this->helper->getBrands->get($item)->getOptions() as $option) {
                 if ($option->getValue()) {
-                    self::$data[] = [
+                    $data[] = [
                         'name' => $option->getLabel(),
                         'id' => $option->getValue(),
-                        'url' => self::$url . $option->getLabel()
+                        'url' => $url . $option->getLabel()
                     ];
                 }
             }
         }
 
-        return self::$data;
+        return $data;
     }
 }

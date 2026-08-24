@@ -3,71 +3,58 @@
  * @copyright   Copyright (c) 2023 TheMarketer.com
  * @project     TheMarketer.com
  * @website     https://themarketer.com/
- * @author      Alexandru Buzica (EAX LEX S.R.L.) <b.alex@eax.ro>
+ * @author      TheMarketer
  * @license     http://opensource.org/licenses/osl-3.0.php - Open Software License (OSL 3.0)
  * @docs        https://themarketer.com/resources/api
  */
 
 namespace Mktr\Tracker\Controller\Api;
 
-use Magento\Framework\App\Action\Action;
+use Magento\Framework\App\Action\HttpGetActionInterface;
 use Mktr\Tracker\Helper\Data;
+use Mktr\Tracker\Model\DiscountCode;
 
-class CodeGenerator extends Action
+class CodeGenerator implements HttpGetActionInterface
 {
-    private static $ins = [
-        "Help" => null,
-        "CodeGen" => null
-    ];
+    /**
+     * @var Data
+     */
+    private $helper;
 
-    private static $error;
+    /**
+     * @var DiscountCode
+     */
+    private $discountCode;
 
-    public function __construct(\Magento\Framework\App\Action\Context $context, Data $help)
+    public function __construct(Data $helper, DiscountCode $discountCode)
     {
-        parent::__construct($context);
-        self::$ins['Help'] = $help;
-    }
-
-    /** TODO: Magento 2 */
-    public static function getHelp()
-    {
-        if (self::$ins["Help"] == null) {
-            self::$ins["Help"] = \Magento\Framework\App\ObjectManager::getInstance()->get('\Mktr\Tracker\Helper\Data');
-        }
-        return self::$ins["Help"];
-    }
-    /** TODO: Magento 2 */
-    public static function getCodeGen()
-    {
-        if (self::$ins["CodeGen"] == null) {
-            self::$ins["CodeGen"] = \Magento\Framework\App\ObjectManager::getInstance()->get('\Mktr\Tracker\Model\DiscountCode');
-        }
-        return self::$ins["CodeGen"];
-    }
-
-    private static function status()
-    {
-        return self::$error == null;
+        $this->helper = $helper;
+        $this->discountCode = $discountCode;
     }
 
     public function execute()
     {
-        if (!self::getHelp()->getRequest->getParam("mime-type")) {
-            self::getHelp()->getRequest->setParam("mime-type", 'json');
+        if (!$this->helper->getRequest->getParam("mime-type")) {
+            $this->helper->getRequest->setParam("mime-type", 'json');
         }
-        
-        self::$error =  self::getHelp()->getFunc->isParamValid([
+
+        $error = $this->helper->getFunc->isParamValid([
             'key' => 'KeyAuth',
             'expiration_date' => 'DateCheck',
             'value' => 'Required|Int',
             'type' => "Required|RuleCheck"
         ]);
 
-        if (self::status()) {
-            $gCode = self::getCodeGen()->getNewCode(self::getHelp()->getRequest->getParams());
+        if ($error === null) {
+            try {
+                $gCode = $this->discountCode->getNewCode($this->helper->getRequest->getParams());
+            } catch (\Throwable $e) {
+                return $this->helper->getFunc->Output(['status' => 'Unable to generate discount code']);
+            }
 
-            return self::getHelp()->getFunc->Output([ 'code' => $gCode->getCouponCodeGenerator()->getCode() ]);
+            return $this->helper->getFunc->Output(['code' => $gCode->getCouponCodeGenerator()->getCode()]);
         }
-        return self::getHelp()->getFunc->Output([ 'status' => self::$error ]);
+
+        return $this->helper->getFunc->Output(['status' => $error]);
     }
 }

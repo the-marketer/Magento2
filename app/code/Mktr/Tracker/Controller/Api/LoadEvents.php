@@ -3,70 +3,58 @@
  * @copyright   Copyright (c) 2023 TheMarketer.com
  * @project     TheMarketer.com
  * @website     https://themarketer.com/
- * @author      Alexandru Buzica (EAX LEX S.R.L.) <b.alex@eax.ro>
+ * @author      TheMarketer
  * @license     http://opensource.org/licenses/osl-3.0.php - Open Software License (OSL 3.0)
  * @docs        https://themarketer.com/resources/api
  */
 
 namespace Mktr\Tracker\Controller\Api;
 
-use Magento\Framework\App\Action\Action;
-use Magento\Framework\App\Action\Context;
+use Magento\Framework\App\Action\HttpGetActionInterface;
 use Mktr\Tracker\Helper\Data;
 
-class LoadEvents extends Action
+class LoadEvents implements HttpGetActionInterface
 {
-    private static $ins = [
-        "Help" => null,
-        "Config" => null
-    ];
+    /**
+     * @var Data
+     */
+    private $helper;
 
-    public function __construct(Context $context, Data $help)
+    public function __construct(Data $helper)
     {
-        parent::__construct($context);
-        self::$ins['Help'] = $help;
-    }
-
-    /** TODO: Magento 2 */
-    public static function getHelp()
-    {
-        if (self::$ins["Help"] == null) {
-            self::$ins["Help"] = \Magento\Framework\App\ObjectManager::getInstance()->get('\Mktr\Tracker\Helper\Data');
-        }
-        return self::$ins["Help"];
+        $this->helper = $helper;
     }
 
     public function execute()
     {
         $lines = [];
         $loadJS = [];
-        foreach (self::getHelp()->getConfig->getEventsObs() as $event => $Name) {
-            $fName = self::getHelp()->getSessionName.$event;
+        foreach ($this->helper->getConfig->getEventsObs() as $event => $Name) {
+            $fName = $this->helper->getSessionName . $event;
 
-            $eventData = self::getHelp()->getSession->{"get".$fName}();
+            $eventData = $this->helper->getSession->{"get" . $fName}();
 
             if ($eventData) {
-                $lines[] = "window.mktr.eventPush(".self::getHelp()->getManager->getEvent($Name[1], $eventData)->toJson().");";
+                $lines[] = "window.mktr.eventPush(" . $this->helper->getManager->getEvent($Name[1], $eventData)->toJson() . ");";
                 if (!$Name[0]) {
-                    self::getHelp()->getSession->{"uns".$fName}();
+                    $this->helper->getSession->{"uns" . $fName}();
                 } else {
                     if ($Name[0]) {
                         $loadJS[$event] = true;
                     } else {
-                        self::getHelp()->getSession->{"uns".$fName}();
+                        $this->helper->getSession->{"uns" . $fName}();
                     }
                 }
             }
         }
 
         foreach ($loadJS as $k => $v) {
-            $lines[] = 'window.mktr.loadScript("'.$k.'");';
+            $lines[] = 'if (window.mktr.postAction) { window.mktr.postAction("' . $k . '"); }';
         }
 
-        $result = self::getHelp()->getPageRaw;
+        $result = $this->helper->getPageRaw;
         $result->setHeader('Content-type', 'application/javascript; charset=utf-8;', 1);
-        /** TODO Magento 1 - setBody() | Magento 2 - setContents()  */
-        $result->setContents(implode(self::getHelp()->getSpace(), $lines).PHP_EOL);
+        $result->setContents(implode($this->helper->getSpace(), $lines) . PHP_EOL);
         return $result;
     }
 }

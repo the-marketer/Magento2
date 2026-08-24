@@ -3,129 +3,126 @@
  * @copyright   Copyright (c) 2023 TheMarketer.com
  * @project     TheMarketer.com
  * @website     https://themarketer.com/
- * @author      Alexandru Buzica (EAX LEX S.R.L.) <b.alex@eax.ro>
+ * @author      TheMarketer
  * @license     http://opensource.org/licenses/osl-3.0.php - Open Software License (OSL 3.0)
  * @docs        https://themarketer.com/resources/api
  */
 
 namespace Mktr\Tracker\Controller\Api;
 
-use Magento\Framework\App\Action\Action;
-use Magento\Framework\App\Action\Context;
+use Magento\Framework\App\Action\HttpGetActionInterface;
 use Mktr\Tracker\Helper\Data;
 
-class Category extends Action
+class Category implements HttpGetActionInterface
 {
-    // private static $cons = null;
-    private static $ins = [
-        "Help" => null
-    ];
+    /**
+     * @var Data
+     */
+    private $helper;
 
-    private static $error = null;
-    private static $fileName = "categories";
-    private static $secondName = "category";
-    private static $params = [];
-    private static $rmExt = false;
+    private $fileName = "categories";
+    private $secondName = "category";
 
-    private static $data;
-    private static $url;
-    private static $imageLink = null;
+    /**
+     * @var array
+     */
+    private $exportData = [];
 
-    public function __construct(Context $context, Data $help)
+    /**
+     * @var string|null
+     */
+    private $exportUrl;
+
+    /**
+     * @var bool
+     */
+    private $rmExt = false;
+
+    /**
+     * @var string|null
+     */
+    private $imageLink;
+
+    public function __construct(Data $helper)
     {
-        parent::__construct($context);
-        self::$ins['Help'] = $help;
+        $this->helper = $helper;
     }
 
-    /** TODO: Magento 2 */
-    public static function getHelp()
-    {
-        if (self::$ins["Help"] == null) {
-            self::$ins["Help"] = \Magento\Framework\App\ObjectManager::getInstance()->get('\Mktr\Tracker\Helper\Data');
-        }
-        return self::$ins["Help"];
-    }
-
-    private static function status()
-    {
-        return self::$error == null;
-    }
-
-    /** @noinspection PhpUnused */
     public function execute()
     {
-        self::$error =  self::getHelp()->getFunc->isParamValid([
-            'key' => 'Required|Key'
+        $error = $this->helper->getFunc->isParamValid([
+            'key' => 'KeyAuth'
         ]);
 
-        if ($this->status()) {
-            self::$params = self::getHelp()->getRequest->getParams();
-            if (isset(self::$params['rmExt']) && self::$params['rmExt'] == 1) {
-                self::$rmExt = true;
-            }
-            return self::getHelp()->getFunc->readOrWrite(self::$fileName, self::$secondName, $this);
+        if ($error === null) {
+            $params = $this->helper->getRequest->getParams();
+            $this->rmExt = isset($params['rmExt']) && $params['rmExt'] == 1;
+            return $this->helper->getFunc->readOrWrite($this->fileName, $this->secondName, $this);
         }
 
-        return self::getHelp()->getFunc->Output('status', self::$error);
+        return $this->helper->getFunc->Output('status', $error);
     }
 
-    public static function hierarchy($category)
+    public function hierarchy($category)
     {
-        $breadcrumb = [ $category->getName() ];
+        $breadcrumb = [$category->getName()];
 
         while ($category->getLevel() > 2) {
-            $category = self::getHelp()->getCategoryRepo->load($category->getParentId());
+            $category = $this->helper->getCategoryRepo->load($category->getParentId());
             $breadcrumb[] = $category->getName();
         }
         $breadcrumb = array_reverse($breadcrumb);
         return implode("|", $breadcrumb);
     }
 
-    private static function buildImageUrl($img): string
+    private function buildImageUrl($img): string
     {
-        if ($img === null) { $img = ''; }
-        if (self::$imageLink === null) {
-            /** TODO: Magento 2 */
-            self::$imageLink = self::getHelp()->getStore->getBaseUrl(\Magento\Framework\UrlInterface::URL_TYPE_LINK);
+        if ($img === null) {
+            $img = '';
+        }
+        if ($this->imageLink === null) {
+            $this->imageLink = $this->helper->getStore->getBaseUrl(\Magento\Framework\UrlInterface::URL_TYPE_LINK);
 
-            if (substr(self::$imageLink, -1) === '/') {
-                self::$imageLink = substr(self::$imageLink, 0, -1);
+            if (substr($this->imageLink, -1) === '/') {
+                $this->imageLink = substr($this->imageLink, 0, -1);
             }
         }
 
-        return self::$imageLink . (substr($img, 0, 1) === '/' ? '' : '/') . $img;
+        return $this->imageLink . (substr($img, 0, 1) === '/' ? '' : '/') . $img;
     }
 
-    public static function build($category)
+    public function build($category)
     {
-
         $newList = [
             "name" => $category->getName(),
-            "url" => self::$rmExt === true ? self::$url. $category->getUrlPath() : self::$url. $category->getUrlPath().'.html',
-            'id'=> $category->getId(),
-            "hierarchy" => self::hierarchy($category),
+            "url" => $this->rmExt === true
+                ? $this->exportUrl . $category->getUrlPath()
+                : $this->exportUrl . $category->getUrlPath() . '.html',
+            'id' => $category->getId(),
+            "hierarchy" => $this->hierarchy($category),
             "image_url" => $category->getImageUrl()
         ];
 
         if (empty($newList["image_url"])) {
             unset($newList["image_url"]);
         } else {
-            $newList["image_url"] = self::buildImageUrl($newList["image_url"]);
+            $newList["image_url"] = $this->buildImageUrl($newList["image_url"]);
         }
 
-        self::$data[] = $newList;
+        $this->exportData[] = $newList;
     }
 
-    public static function freshData(): array
+    public function freshData(): array
     {
-        $categories = self::getHelp()->getCategoriesData->getStoreCategories(false, true, true);
-        self::$data = [];
-        self::$url = self::getHelp()->getBaseUrl;
+        $categories = $this->helper->getCategoriesData->getStoreCategories(false, true, true);
+        $this->exportData = [];
+        $this->exportUrl = $this->helper->getBaseUrl;
+        $this->imageLink = null;
         foreach ($categories as $category) {
-            $cat = self::getHelp()->getCategoryRepo->load($category->getId());
-            self::build($cat);
+            $cat = $this->helper->getCategoryRepo->load($category->getId());
+            $this->build($cat);
         }
 
-        return self::$data;
+        return $this->exportData;
     }
 }

@@ -4,7 +4,7 @@
  * @copyright   Copyright (c) 2023 TheMarketer.com
  * @project     TheMarketer.com
  * @website     https://themarketer.com/
- * @author      Alexandru Buzica (EAX LEX S.R.L.) <b.alex@eax.ro>
+ * @author      TheMarketer
  * @license     http://opensource.org/licenses/osl-3.0.php - Open Software License (OSL 3.0)
  * @docs        https://themarketer.com/resources/api
  */
@@ -12,191 +12,249 @@
 namespace Mktr\Tracker\Model;
 
 use Exception;
+use Magento\Framework\App\Request\Http as HttpRequest;
+use Magento\Framework\Controller\Result\RawFactory;
+use Magento\Store\Model\StoreManagerInterface;
 
 class Func
 {
-    private static $params;
-    private static $dateFormat;
+    private const CACHE_TTL_SECONDS = 86400;
+    private const DEFAULT_PAGE = 1;
+    private const DEFAULT_LIMIT = 50;
+    private const MAX_LIMIT = 250;
 
-    private static $ins = [
-        "Help" => null,
-        "Config" => null
-    ];
+    /**
+     * @var Config
+     */
+    private $config;
+
+    /**
+     * @var HttpRequest
+     */
+    private $request;
+
+    /**
+     * @var StoreManagerInterface
+     */
+    private $storeManager;
+
+    /**
+     * @var FileSystem
+     */
+    private $fileSystem;
+
+    /**
+     * @var RawFactory
+     */
+    private $rawFactory;
+
+    /**
+     * @var array|null
+     */
+    private $params;
+
     /**
      * @var string
      */
-    private static $getOut;
-    private static $storeID = null;
+    private $dateFormat = 'Y-m-d';
 
-    /** TODO: Magento 2 */
-    public static function getConfig()
-    {
-        if (self::$ins["Config"] == null) {
-            self::$ins["Config"] = \Magento\Framework\App\ObjectManager::getInstance()->get("\Mktr\Tracker\Model\Config");
-        }
-        return self::$ins["Config"];
-    }
+    /**
+     * @var string
+     */
+    private $output = '';
 
-    /** TODO: Magento 2 */
-    public static function getHelp()
-    {
-        if (self::$ins["Help"] == null) {
-            self::$ins["Help"] = \Magento\Framework\App\ObjectManager::getInstance()->get('\Mktr\Tracker\Helper\Data');
-        }
-        return self::$ins["Help"];
+    /**
+     * @var int|string|null
+     */
+    private $storeId = null;
+
+    public function __construct(
+        Config $config,
+        HttpRequest $request,
+        StoreManagerInterface $storeManager,
+        FileSystem $fileSystem,
+        RawFactory $rawFactory
+    ) {
+        $this->config = $config;
+        $this->request = $request;
+        $this->storeManager = $storeManager;
+        $this->fileSystem = $fileSystem;
+        $this->rawFactory = $rawFactory;
     }
 
     /** @noinspection PhpUnused
      * @noinspection PhpRedundantOptionalArgumentInspection
      */
-    public static function digit2($num): string
+    public function digit2($num): string
     {
-        // return sprintf('%.2f', (float) $num);
         return str_replace(',', '', number_format((float) $num, 2, '.', ''));
     }
 
     /** @noinspection PhpUnused */
-    public static function validateTelephone($phone)
+    public function validateTelephone($phone)
     {
         return preg_replace("/\D/", "", $phone);
     }
 
-    public static function toJson($data = null)
+    public function toJson($data = null)
     {
         /** @noinspection PhpComposerExtensionStubsInspection */
         return json_encode(($data === null ? [] : $data), JSON_UNESCAPED_SLASHES);
     }
 
-    public static function validateDate($date, $format = 'Y-m-d')
+    public function validateDate($date, $format = 'Y-m-d')
     {
-        self::$dateFormat = $format;
+        $this->dateFormat = $format;
         $d = \DateTime::createFromFormat($format, $date);
+
         return $d && $d->format($format) === $date;
     }
 
-    public static function correctDate($date = null, $format = "Y-m-d H:i")
+    public function correctDate($date = null, $format = "Y-m-d H:i")
     {
         return $date !== null && $date != "0000-00-00 00:00:00" ? date($format, strtotime($date)) : null;
     }
 
-    public static function getOutPut()
+    public function getOutPut()
     {
-        return self::$getOut;
+        return $this->output;
     }
 
-    public static function justOutput($data, $data1 = null, $type = null)
+    public function justOutput($data, $data1 = null, $type = null)
     {
-        return self::Output($data, $data1, $type, false);
+        return $this->Output($data, $data1, $type, false);
     }
 
-    public static function setStoreId($id)
+    public function setStoreId($id)
     {
-        self::$storeID = $id;
+        $this->storeId = $id;
     }
 
-    public static function getWebsiteId($store)
+    public function getWebsiteId($store)
     {
         try {
-            return self::getHelp()->getStoreManager->getWebsite($store)->getDefaultGroup()->getDefaultStoreId();
+            return $this->storeManager->getWebsite($store)->getDefaultGroup()->getDefaultStoreId();
         } catch (Exception $e) {
             return false;
         }
     }
 
-    public static function getStoreId()
+    public function getStoreId()
     {
-        
-        if (self::$storeID == null) {
-            $store = self::getHelp()->getRequest->getParam('store', false);
-            
+        if ($this->storeId === null) {
+            $store = $this->request->getParam('store', false);
+
             if ($store !== false) {
                 try {
-                    $store = self::getHelp()->getStoreManager->getStore($store)->getId();
+                    $store = $this->storeManager->getStore($store)->getId();
                 } catch (Exception $e) {
-                    $store = self::getWebsiteId($store);
+                    $store = $this->getWebsiteId($store);
                 }
             }
             if ($store !== false) {
-                self::$storeID = $store;
-                self::getHelp()->getStoreManager->setCurrentStore($store);
+                $this->storeId = $store;
+                $this->storeManager->setCurrentStore($store);
             } else {
-                self::$storeID = self::getHelp()->getStore->getStoreId();
+                $this->storeId = $this->storeManager->getStore()->getId();
             }
         }
-        return self::$storeID;
+
+        return $this->storeId;
     }
 
-    public static function Write($action)
+    public function Write($action)
     {
-        if (!self::getHelp()->getRequest->getParam("mime-type")) {
-            self::getHelp()->getRequest->setParam("mime-type", 'xml');
+        if (!$this->request->getParam("mime-type")) {
+            $this->request->setParam("mime-type", 'xml');
         }
 
-        $params = self::getHelp()->getRequest->getParams();
+        $params = $this->request->getParams();
 
-        if (isset($params['start_date'])) {
-            $script = base64_encode($params['start_date'].'-'.self::getStoreId());
-        } else {
-            $script = self::getStoreId();
-        }
+        $fileName = $this->buildCacheFileName($action->getName(), $params);
 
-        $fileName = $action->getName().".".$script.".".$params["mime-type"];
-
-        $module = self::getHelp()->getFileSystem->setWorkDirectory("Storage");
+        $module = $this->fileSystem->setWorkDirectory("Storage");
+        $module->deleteExpiredFiles(self::CACHE_TTL_SECONDS);
 
         $out = $action->freshData();
 
-        $result = self::Output($action->getName(), [$action->getSecondName() => $out]);
+        $result = $this->Output($action->getName(), [$action->getSecondName() => $out]);
 
-        $module->writeFile($fileName, self::getOutPut());
+        $module->writeFile($fileName, $this->getOutPut());
 
         return $result;
     }
 
-    public static function readOrWrite($fName, $secondName, $action)
+    public function readOrWrite($fName, $secondName, $action)
     {
-        if (!self::getHelp()->getRequest->getParam("mime-type")) {
-            self::getHelp()->getRequest->setParam("mime-type", 'xml');
+        if (!$this->request->getParam("mime-type")) {
+            $this->request->setParam("mime-type", 'xml');
         }
-        $module = self::getHelp()->getFileSystem->setWorkDirectory("Storage");
-        $params = self::getHelp()->getRequest->getParams();
+        $module = $this->fileSystem->setWorkDirectory("Storage");
+        $params = $this->request->getParams();
 
-        if (isset($params['start_date'])) {
-            $script = base64_encode($params['start_date'].'-'.self::getStoreId());
-        } else {
-            $script = self::getStoreId();
-        }
+        $fileName = $this->buildCacheFileName($fName, $params);
+        $module->deleteExpiredFiles(self::CACHE_TTL_SECONDS);
 
-        $pageKey = '';
-        if (isset($params['page']) || isset($params['limit'])) {
-            $pageKey = '.p' . ($params['page'] ?? 'all') . '.l' . ($params['limit'] ?? '50');
-        }
-
-        $fileName = $fName.".".$script.$pageKey.".".$params["mime-type"];
-
-        if (isset($params['read']) && $module->isExists($fileName)) {
+        if (isset($params['read']) && $module->isExists($fileName) && !$module->isExpired($fileName, self::CACHE_TTL_SECONDS)) {
             $out = $module->readFile($fileName);
 
             if ($out !== false) {
-                return self::justOutput($out);
+                return $this->justOutput($out);
             }
         }
         $out = $action->freshData();
-        $result = self::Output($fName, [$secondName => $out]);
+        $result = $this->Output($fName, [$secondName => $out]);
 
-        $module->writeFile($fileName, self::getOutPut());
+        $module->writeFile($fileName, $this->getOutPut());
 
-        return $result ;
+        return $result;
     }
 
-    public static function Output($data, $data1 = null, $type = null, $convert = true)
+    public function getPageParam(): int
     {
+        $page = (int) ($this->request->getParam('page', self::DEFAULT_PAGE));
 
-        $type = $type ?? self::getHelp()->getRequest->getParam('mime-type') ?? "xml";
+        return max(self::DEFAULT_PAGE, $page);
+    }
 
-        $result = self::getHelp()->getPageRaw;
+    public function getLimitParam(): int
+    {
+        $limit = (int) ($this->request->getParam('limit', self::DEFAULT_LIMIT));
 
-        self::$getOut = "";
+        return min(self::MAX_LIMIT, max(1, $limit));
+    }
+
+    private function buildCacheFileName(string $name, array $params): string
+    {
+        $mimeType = $params['mime-type'] ?? 'xml';
+        $page = isset($params['page']) ? $this->getPageParam() : 'all';
+        $limit = isset($params['limit']) ? $this->getLimitParam() : self::DEFAULT_LIMIT;
+        $rawKey = implode('|', [
+            $name,
+            $this->getStoreId(),
+            $params['start_date'] ?? '',
+            $params['end_date'] ?? '',
+            $page,
+            $limit,
+            $mimeType
+        ]);
+        $secret = (string) ($this->config->getRestKey() ?: $this->config->getCustomerId() ?: 'mktr_tracker');
+
+        return $name . '.' . hash_hmac('sha256', $rawKey, $secret) . '.' . $mimeType;
+    }
+
+    public function Output($data, $data1 = null, $type = null, $convert = true, ?int $httpStatusCode = null)
+    {
+        $type = $type ?? $this->request->getParam('mime-type') ?? "xml";
+
+        $result = $this->rawFactory->create();
+        $httpStatusCode = $httpStatusCode ?? $this->resolveHttpStatusCode($data, $data1);
+
+        if ($httpStatusCode !== 200) {
+            $result->setHttpResponseCode($httpStatusCode);
+        }
+
+        $this->output = "";
 
         if ($type === 'json') {
             $result->setHeader('Content-type', 'application/json; charset=utf-8;', 1);
@@ -206,28 +264,41 @@ class Func
                     $data = [$data => $data1];
                 }
 
-                self::$getOut = self::toJson($data);
+                $this->output = $this->toJson($data);
             }
         } else {
             $result->setHeader('Content-type', 'application/xhtml+xml; charset=utf-8;', 1);
 
             if ($convert) {
-                self::$getOut = self::getHelp()->getArray2XML->cXML($data, $data1)->saveXML();
+                $this->output = Array2XML::cXML($data, $data1)->saveXML();
             }
         }
 
         if (!$convert) {
-            self::$getOut = $data;
+            $this->output = $data;
         }
 
-        return $result->setContents(self::$getOut);
+        return $result->setContents($this->output);
     }
 
-    public static function isParamValid($checkParam = null)
+    private function resolveHttpStatusCode($data, $data1 = null): int
     {
-        self::$params = self::getHelp()->getRequest->getParams();
+        if ($data === 'status' && $data1 === 'Incorrect Authorization') {
+            return 401;
+        }
 
-        if (self::$params === null) {
+        if (is_array($data) && ($data['status'] ?? null) === 'Incorrect Authorization') {
+            return 401;
+        }
+
+        return 200;
+    }
+
+    public function isParamValid($checkParam = null)
+    {
+        $this->params = $this->request->getParams();
+
+        if ($this->params === null) {
             return "oops";
         }
 
@@ -244,55 +315,38 @@ class Func
                     if ($error === null) {
                         switch ($do) {
                             case "Required":
-                                if (!isset(self::$params[$k])) {
-                                    $error = "Missing Parameter ". $k;
+                                if (!isset($this->params[$k])) {
+                                    $error = "Missing Parameter " . $k;
                                 }
                                 break;
                             case "DateCheck":
-                                if (isset(self::$params[$k]) && !self::validateDate(self::$params[$k])) {
-                                    $error = "Incorrect Date ".
-                                        $k." - ".
-                                        self::$params[$k] . " - ".
-                                        self::$dateFormat;
+                                if (isset($this->params[$k]) && !$this->validateDate($this->params[$k])) {
+                                    $error = "Incorrect Date";
                                 }
                                 break;
                             case "StartDate":
-                                if (isset(self::$params[$k]) && strtotime(self::$params[$k]) > \time()) {
-                                    $error = "Incorrect Start Date ".
-                                        $k." - ".
-                                        self::$params[$k] . " - Today is ".
-                                        date(self::$dateFormat, \time());
+                                if (isset($this->params[$k]) && strtotime($this->params[$k]) > \time()) {
+                                    $error = "Incorrect Start Date";
                                 }
                                 break;
                             case "Key":
-                                if (isset(self::$params[$k]) && self::$params[$k] !== self::getConfig()->getRestKey()) {
-                                    $error = "Incorrect REST API Key ". self::$params[$k];
-                                }
-                                break;
                             case "KeyAuth":
-                                $authHeader = self::getHelp()->getRequest->getHeader('Authorization');
-                                $token = null;
-
-                                if ($authHeader && preg_match('/Bearer\s+(\S+)/', $authHeader, $matches)) {
-                                    $token = $matches[1];
-                                }
-
-                                if (!$token || $token !== self::getConfig()->getRestKey()) {
+                                if (!$this->isAuthorizedByBearerToken()) {
                                     $error = "Incorrect Authorization";
                                 }
                                 break;
                             case "RuleCheck":
-                                if (isset(self::$params[$k]) && !isset(self::getConfig()->getDiscountRules()[self::$params[$k]])) {
-                                    $error = "Incorrect Rule Type ". self::$params[$k];
+                                if (isset($this->params[$k]) && !isset($this->config->getDiscountRules()[$this->params[$k]])) {
+                                    $error = "Incorrect Rule Type";
                                 }
                                 break;
                             case "Int":
-                                if (isset(self::$params[$k]) && !is_numeric(self::$params[$k])) {
-                                    $error = "Incorrect Value ". self::$params[$k];
+                                if (isset($this->params[$k]) && !is_numeric($this->params[$k])) {
+                                    $error = "Incorrect Value";
                                 }
                                 break;
                             case "allow_export":
-                                if (self::getConfig()->getAllowExport() === 0) {
+                                if ($this->config->getAllowExport() === 0) {
                                     $error = "Export not Allow";
                                 }
                                 break;
@@ -304,5 +358,19 @@ class Func
         }
 
         return $error;
+    }
+
+    private function isAuthorizedByBearerToken(): bool
+    {
+        $authHeader = $this->request->getHeader('Authorization');
+        $token = null;
+
+        if ($authHeader && preg_match('/Bearer\s+(\S+)/', $authHeader, $matches)) {
+            $token = $matches[1];
+        }
+
+        $expectedToken = (string) $this->config->getRestKey();
+
+        return $token !== null && hash_equals($expectedToken, (string) $token);
     }
 }

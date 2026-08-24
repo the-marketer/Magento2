@@ -3,7 +3,7 @@
  * @copyright   Copyright (c) 2023 TheMarketer.com
  * @project     TheMarketer.com
  * @website     https://themarketer.com/
- * @author      Alexandru Buzica (EAX LEX S.R.L.) <b.alex@eax.ro>
+ * @author      TheMarketer
  * @license     http://opensource.org/licenses/osl-3.0.php - Open Software License (OSL 3.0)
  * @docs        https://themarketer.com/resources/api
  */
@@ -31,148 +31,148 @@ class Array2XML
     const LABEL_DOCTYPE = '@docType';
     const LABEL_VALUE = '@value';
 
-    protected static $xml = null;
+    /**
+     * @var DOMDocument|null
+     */
+    private $xml = null;
 
-    protected static $domVersion = self::DEFAULT_DOM_VERSION;
+    /**
+     * @var string
+     */
+    private $domVersion;
 
-    protected static $encoding = self::DEFAULT_ENCODING;
+    /**
+     * @var string
+     */
+    private $encoding;
 
-    protected static $standalone = self::DEFAULT_STANDALONE;
+    /**
+     * @var bool
+     */
+    private $standalone;
 
-    protected static $formatOutput = self::DEFAULT_FORMAT_OUTPUT;
+    /**
+     * @var bool
+     */
+    private $formatOutput;
 
-    protected static $labelAttributes = self::LABEL_ATTRIBUTES;
+    /**
+     * @var string
+     */
+    private $labelAttributes;
 
-    protected static $labelCData = self::LABEL_CDATA;
+    /**
+     * @var string
+     */
+    private $labelCData;
 
-    protected static $labelDocType = self::LABEL_DOCTYPE;
+    /**
+     * @var string
+     */
+    private $labelDocType;
 
-    protected static $labelValue = self::LABEL_VALUE;
+    /**
+     * @var string
+     */
+    private $labelValue;
+
+    public function __construct(
+        ?string $version = null,
+        ?string $encoding = null,
+        ?bool $standalone = null,
+        ?bool $formatOutput = null,
+        ?string $labelAttributes = null,
+        ?string $labelCData = null,
+        ?string $labelDocType = null,
+        ?string $labelValue = null
+    ) {
+        $this->domVersion = $version ?? self::DEFAULT_DOM_VERSION;
+        $this->encoding = $encoding ?? self::DEFAULT_ENCODING;
+        $this->standalone = $standalone ?? self::DEFAULT_STANDALONE;
+        $this->formatOutput = $formatOutput ?? self::DEFAULT_FORMAT_OUTPUT;
+        $this->labelAttributes = $labelAttributes ?? self::LABEL_ATTRIBUTES;
+        $this->labelCData = $labelCData ?? self::LABEL_CDATA;
+        $this->labelDocType = $labelDocType ?? self::LABEL_DOCTYPE;
+        $this->labelValue = $labelValue ?? self::LABEL_VALUE;
+    }
 
     public static function init(
-        string $version = null,
-        string $encoding = null,
-        bool $standalone = null,
-        bool $format_output = null,
-        string $labelAttributes = null,
-        string $labelCData = null,
-        string $labelDocType = null,
-        string $labelValue = null
+        ?string $version = null,
+        ?string $encoding = null,
+        ?bool $standalone = null,
+        ?bool $format_output = null,
+        ?string $labelAttributes = null,
+        ?string $labelCData = null,
+        ?string $labelDocType = null,
+        ?string $labelValue = null
     ) {
-        self::setDomVersion($version);
-        self::setEncoding($encoding);
-        self::setStandalone($standalone);
-        self::setFormatOutput($format_output);
-
-        self::setLabelAttributes($labelAttributes);
-        self::setLabelCData($labelCData);
-        self::setLabelDocType($labelDocType);
-        self::setLabelValue($labelValue);
-
-        self::$xml = new DomDocument(self::getDomVersion(), self::getEncoding());
-        // self::$xml->xmlStandalone = self::isStandalone();
-        self::$xml->formatOutput = self::isFormatOutput();
+        return new self(
+            $version,
+            $encoding,
+            $standalone,
+            $format_output,
+            $labelAttributes,
+            $labelCData,
+            $labelDocType,
+            $labelValue
+        );
     }
 
     public static function getDomVersion(): string
     {
-        return self::$domVersion;
+        return self::DEFAULT_DOM_VERSION;
     }
 
     public static function getEncoding(): string
     {
-        return self::$encoding;
+        return self::DEFAULT_ENCODING;
     }
 
     /** @noinspection PhpUnused */
     public static function isStandalone(): bool
     {
-        return self::$standalone;
+        return self::DEFAULT_STANDALONE;
     }
 
     public static function isFormatOutput(): bool
     {
-        return self::$formatOutput;
-    }
-
-    protected static function setDomVersion(string $domVersion = null)
-    {
-        self::$domVersion = $domVersion ?? self::DEFAULT_DOM_VERSION;
-    }
-
-    protected static function setEncoding(string $encoding = null)
-    {
-        self::$encoding = $encoding ?? self::DEFAULT_ENCODING;
-    }
-
-    protected static function setStandalone(bool $standalone = null)
-    {
-        self::$standalone = $standalone ?? self::DEFAULT_STANDALONE;
-    }
-
-    protected static function setFormatOutput(bool $formatOutput = null)
-    {
-        self::$formatOutput = $formatOutput ?? self::DEFAULT_FORMAT_OUTPUT;
+        return self::DEFAULT_FORMAT_OUTPUT;
     }
 
     /** @noinspection PhpUnused */
     public static function getLabelAttributes(): string
     {
-        return self::$labelAttributes;
+        return self::LABEL_ATTRIBUTES;
     }
 
     /** @noinspection PhpUnused */
     public static function getLabelCData(): string
     {
-        return self::$labelCData;
+        return self::LABEL_CDATA;
     }
 
     /** @noinspection PhpUnused */
     public static function getLabelDocType(): string
     {
-        return self::$labelDocType;
+        return self::LABEL_DOCTYPE;
     }
 
     /** @noinspection PhpUnused */
     public static function getLabelValue(): string
     {
-        return self::$labelValue;
-    }
-
-    protected static function setLabelAttributes(string $labelAttributes = null)
-    {
-        self::$labelAttributes = $labelAttributes ?? self::LABEL_ATTRIBUTES;
-    }
-
-    protected static function setLabelCData(string $labelCData = null)
-    {
-        self::$labelCData = $labelCData ?? self::LABEL_CDATA;
-    }
-
-    protected static function setLabelDocType(string $labelDocType = null)
-    {
-        self::$labelDocType = $labelDocType ?? self::LABEL_DOCTYPE;
-    }
-
-    protected static function setLabelValue(string $labelValue = null)
-    {
-        self::$labelValue = $labelValue ?? self::LABEL_VALUE;
+        return self::LABEL_VALUE;
     }
 
     /** @noinspection PhpUnused */
     public function createXML($node_name, $arr = null, $docType = [])
     {
-        return self::cXML($node_name, $arr, $docType);
-    }
+        $this->xml = new DomDocument($this->domVersion, $this->encoding);
+        // $this->xml->xmlStandalone = $this->standalone;
+        $this->xml->formatOutput = $this->formatOutput;
 
-    public static function cXML($node_name, $arr = null, $docType = [])
-    {
-        /** @noinspection DuplicatedCode */
-        $xml = self::getXMLRoot();
         if ($docType) {
-            /** @noinspection PhpExpressionAlwaysNullInspection */
             /** @noinspection PhpUnhandledExceptionInspection */
-            $xml->appendChild(
+            $this->xml->appendChild(
                 (new DOMImplementation())
                     ->createDocumentType(
                         $docType['name'] ?? '',
@@ -181,63 +181,68 @@ class Array2XML
                     )
             );
         }
+
         if ($arr == null) {
             foreach ($node_name as $key => $value) {
-                /** @noinspection PhpExpressionAlwaysNullInspection */
                 /** @noinspection PhpUnhandledExceptionInspection */
-                $xml->appendChild(self::convert($key, $value));
+                $this->xml->appendChild($this->convert($key, $value));
             }
         } else {
-            /** @noinspection PhpExpressionAlwaysNullInspection */
             /** @noinspection PhpUnhandledExceptionInspection */
-            $xml->appendChild(self::convert($node_name, $arr));
+            $this->xml->appendChild($this->convert($node_name, $arr));
         }
 
-        self::$xml = null;
+        $xml = $this->xml;
+        $this->xml = null;
 
-        /** @noinspection PhpExpressionAlwaysNullInspection */
         return $xml;
+    }
+
+    public static function cXML($node_name, $arr = null, $docType = [])
+    {
+        return (new self())->createXML($node_name, $arr, $docType);
     }
 
     private static function bool2str($v)
     {
-        return $v === true ? 'true' : ($v === false ? 'false' : ( $v === null ? '': $v ));
+        return $v === true ? 'true' : ($v === false ? 'false' : ($v === null ? '' : $v));
     }
 
     /** @noinspection PhpUnused */
     public function getConvert($node_name, $arr = [])
     {
+        $this->ensureXmlRoot();
+
         /** @noinspection PhpUnhandledExceptionInspection */
-        return self::convert($node_name, $arr);
+        return $this->convert($node_name, $arr);
     }
 
-    private static function convert($node_name, $arr = [])
+    private function convert($node_name, $arr = [])
     {
-        //print_arr($node_name);
-        $xml = self::getXMLRoot();
+        $xml = $this->ensureXmlRoot();
         /** @noinspection PhpExpressionAlwaysNullInspection */
         $node = $xml->createElement($node_name);
         if (is_array($arr)) {
-            if (array_key_exists(self::$labelAttributes, $arr) && is_array($arr[self::$labelAttributes])) {
-                foreach ($arr[self::$labelAttributes] as $key => $value) {
+            if (array_key_exists($this->labelAttributes, $arr) && is_array($arr[$this->labelAttributes])) {
+                foreach ($arr[$this->labelAttributes] as $key => $value) {
                     if (!self::isValidTagName($key)) {
                         /** @noinspection PhpUnhandledExceptionInspection */
-                        throw new Exception('[Array2XML] Illegal character in attribute name. attribute: '.$key.' in node: '.$node_name);
+                        throw new Exception('[Array2XML] Illegal character in attribute name. attribute: ' . $key . ' in node: ' . $node_name);
                     }
                     $node->setAttribute($key, self::bool2str($value));
                 }
-                unset($arr[self::$labelAttributes]);
+                unset($arr[$this->labelAttributes]);
             }
 
-            if (array_key_exists(self::$labelValue, $arr)) {
+            if (array_key_exists($this->labelValue, $arr)) {
                 /** @noinspection PhpExpressionAlwaysNullInspection */
-                $node->appendChild($xml->createTextNode(self::bool2str($arr[self::$labelValue])));
-                unset($arr[self::$labelValue]);
+                $node->appendChild($xml->createTextNode(self::bool2str($arr[$this->labelValue])));
+                unset($arr[$this->labelValue]);
                 return $node;
-            } elseif (array_key_exists(self::$labelCData, $arr)) {
+            } elseif (array_key_exists($this->labelCData, $arr)) {
                 /** @noinspection PhpExpressionAlwaysNullInspection */
-                $node->appendChild($xml->createCDATASection(self::bool2str($arr[self::$labelCData])));
-                unset($arr[self::$labelCData]);
+                $node->appendChild($xml->createCDATASection(self::bool2str($arr[$this->labelCData])));
+                unset($arr[$this->labelCData]);
                 return $node;
             }
         }
@@ -246,45 +251,36 @@ class Array2XML
             foreach ($arr as $key => $value) {
                 if (!self::isValidTagName($key)) {
                     /** @noinspection PhpUnhandledExceptionInspection */
-                    throw new Exception('[Array2XML] Illegal character in tag name. tag: '.$key.' in node: '.$node_name);
+                    throw new Exception('[Array2XML] Illegal character in tag name. tag: ' . $key . ' in node: ' . $node_name);
                 }
                 if (is_array($value) && is_numeric(key($value))) {
                     /** @noinspection PhpUnusedLocalVariableInspection */
                     foreach ($value as $k => $v) {
-                        $node->appendChild(self::convert($key, $v));
+                        $node->appendChild($this->convert($key, $v));
                     }
                 } else {
-                    $node->appendChild(self::convert($key, $value));
+                    $node->appendChild($this->convert($key, $value));
                 }
                 unset($arr[$key]);
             }
         }
 
-        /*
-        if (!is_array($arr)) {
-            // || preg_match('/[\'^£$%&*()}{@#~? ><>,|=_+¬-]/', $arr)
-            if (strlen($arr) > 1000000000) {
-                $node->appendChild($xml->createCDATASection(self::bool2str($arr)));
-            } else {
-                $node->appendChild($xml->createTextNode(self::bool2str($arr)));
-            }
-        }
-        */
         if (!is_array($arr)) {
             /** @noinspection PhpExpressionAlwaysNullInspection */
             $node->appendChild($xml->createTextNode(self::bool2str($arr)));
         }
 
-
         return $node;
     }
 
-    private static function getXMLRoot()
+    private function ensureXmlRoot()
     {
-        if (empty(self::$xml)) {
-            self::init();
+        if ($this->xml === null) {
+            $this->xml = new DomDocument($this->domVersion, $this->encoding);
+            $this->xml->formatOutput = $this->formatOutput;
         }
-        return self::$xml;
+
+        return $this->xml;
     }
 
     private static function isValidTagName($tag): bool

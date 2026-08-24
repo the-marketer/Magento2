@@ -3,101 +3,78 @@
  * @copyright   Copyright (c) 2023 TheMarketer.com
  * @project     TheMarketer.com
  * @website     https://themarketer.com/
- * @author      Alexandru Buzica (EAX LEX S.R.L.) <b.alex@eax.ro>
+ * @author      TheMarketer
  * @license     http://opensource.org/licenses/osl-3.0.php - Open Software License (OSL 3.0)
  * @docs        https://themarketer.com/resources/api
  */
 
 namespace Mktr\Tracker\Controller\Api;
 
-use Magento\Framework\App\Action\Action;
-use Magento\Framework\App\Action\Context;
+use Magento\Framework\App\Action\HttpGetActionInterface;
 use Mktr\Tracker\Helper\Data;
-// use Psr\Log\LoggerInterface;
-// use Magento\Framework\App\ObjectManager;
 
-class Orders extends Action
+class Orders implements HttpGetActionInterface
 {
-    // private static $cons = null;
-    private static $ins = [
-        "Help" => null
-    ];
+    /**
+     * @var Data
+     */
+    private $helper;
 
-    private static $error = null;
-    private static $params = null;
-    private static $brandAttribute = null;
-    private static $data = [];
-    private static $imageLink = null;
 
-    private static $fileName = "orders";
-    private static $secondName = "order";
 
-    public function __construct(Context $context, Data $help)
+    private $fileName = "orders";
+    private $secondName = "order";
+
+    /**
+     * @var array|null
+     */
+    private $brandAttribute;
+
+    /**
+     * @var string|null
+     */
+    private $imageLink;
+
+    public function __construct(Data $helper)
     {
-        parent::__construct($context);
-        self::$ins['Help'] = $help;
+        $this->helper = $helper;
     }
 
-    /** TODO: Magento 2 */
-    public static function getHelp()
+    private function getProductImage($product)
     {
-        if (self::$ins["Help"] == null) {
-            self::$ins["Help"] = \Magento\Framework\App\ObjectManager::getInstance()->get('\Mktr\Tracker\Helper\Data');
+        if ($this->imageLink === null) {
+            $this->imageLink = $this->helper->getStore
+                    ->getBaseUrl(\Magento\Framework\UrlInterface::URL_TYPE_MEDIA) . 'catalog/product';
         }
-        return self::$ins["Help"];
+        return $this->imageLink . $product->getImage();
     }
 
-    private static function status()
-    {
-        return self::$error == null;
-    }
-
-    private static function getProductImage($product)
-    {
-        if (self::$imageLink === null) {
-            /** TODO: Magento 2 */
-            self::$imageLink = self::getHelp()->getStore
-                    ->getBaseUrl(\Magento\Framework\UrlInterface::URL_TYPE_MEDIA).'catalog/product';
-        }
-        return self::$imageLink . $product->getImage();
-    }
-
-    public static function getOrderInfo($saveOrder)
+    public function getOrderInfo($saveOrder)
     {
         $billingAddress = $saveOrder->getBillingAddress();
 
         $products = [];
 
         foreach ($saveOrder->getAllVisibleItems() as $item) {
-            // getProductById();
-            // $pro = self::getHelp()->getProductRepo->load($item->getProductId());
-            try{
-                $pro = self::getHelp()->getProduct->getById($item->getProductId(), false, self::getHelp()->getFunc->getStoreId(), true);
-            } catch (\Exception $e){
+            try {
+                $pro = $this->helper->getProduct->getById($item->getProductId(), false, $this->helper->getFunc->getStoreId(), true);
+            } catch (\Exception $e) {
                 continue;
             }
 
-            $pro->setStoreId(self::getHelp()->getFunc->getStoreId());
-/*
-            $price = self::getHelp()->getFunc->digit2(
-                self::getHelp()->getTax->getTaxPrice($item, $item->getPrice(), true)
-            );
-            $sale_price = $item->getFinalPrice() > 0 ? self::getHelp()->getFunc->digit2(
-                self::getHelp()->getTax->getTaxPrice($item, $item->getFinalPrice(), true)
-            ) : $price;
-*/          
-            $price = self::getHelp()->getFunc->digit2(
+            $pro->setStoreId($this->helper->getFunc->getStoreId());
+            $price = $this->helper->getFunc->digit2(
                 $item->getPriceInclTax()
             );
-            
-            $sale_price = $item->getFinalPriceInclTax() > 0 ? self::getHelp()->getFunc->digit2(
+
+            $sale_price = $item->getFinalPriceInclTax() > 0 ? $this->helper->getFunc->digit2(
                 $item->getFinalPriceInclTax()
             ) : $price;
 
-            $ct = self::getHelp()->getManager->buildMultiCategory($pro->getCategoryIds());
+            $ct = $this->helper->getManager->buildMultiCategory($pro->getCategoryIds());
 
             $brand = '';
-            foreach (self::$brandAttribute as $v) {
+            foreach ($this->brandAttribute as $v) {
                 $brand = $pro->getAttributeText($v);
                 if (!empty($brand)) {
                     break;
@@ -112,7 +89,7 @@ class Orders extends Action
                 'product_id' => $item->getProductId(),
                 'name' => $item->getName(),
                 'url' => $pro->getProductUrl(),
-                'main_image' => self::getProductImage($pro),
+                'main_image' => $this->getProductImage($pro),
                 'category' => $ct,
                 'brand' => $brand,
                 'price' => $price,
@@ -126,20 +103,20 @@ class Orders extends Action
         return empty($products) ? null : [
             "order_no" => $saveOrder->getIncrementId(),
             "order_status" => $saveOrder->getState(),
-            "refund_value" => self::getHelp()->getFunc->digit2($saveOrder->getTotalRefunded()) ?? 0,
-            "created_at" => self::getHelp()->getFunc->correctDate($saveOrder->getCreatedAt()),
+            "refund_value" => $this->helper->getFunc->digit2($saveOrder->getTotalRefunded()) ?? 0,
+            "created_at" => $this->helper->getFunc->correctDate($saveOrder->getCreatedAt()),
             "email_address" => $billingAddress->getEmail(),
-            "phone" => self::getHelp()->getFunc->validateTelephone($billingAddress->getTelephone()),
+            "phone" => $this->helper->getFunc->validateTelephone($billingAddress->getTelephone()),
             "firstname" => $billingAddress->getFirstname(),
             "lastname" => $billingAddress->getLastname(),
             "city" => $billingAddress->getCity(),
             "county" => $billingAddress->getRegion(),
             "address" => implode(" ", $billingAddress->getStreet()),
-            "discount_value" => self::getHelp()->getFunc->digit2($saveOrder->getDiscountAmount()),
+            "discount_value" => $this->helper->getFunc->digit2($saveOrder->getDiscountAmount()),
             "discount_code" => $saveOrder->getCouponCode() ?? "",
-            "shipping" => self::getHelp()->getFunc->digit2($saveOrder->getShippingInclTax()),
-            "tax" => self::getHelp()->getFunc->digit2($saveOrder->getTaxAmount()),// ->getFullTaxInfo()
-            "total_value" => self::getHelp()->getFunc->digit2($saveOrder->getGrandTotal()),
+            "shipping" => $this->helper->getFunc->digit2($saveOrder->getShippingInclTax()),
+            "tax" => $this->helper->getFunc->digit2($saveOrder->getTaxAmount()),// ->getFullTaxInfo()
+            "total_value" => $this->helper->getFunc->digit2($saveOrder->getGrandTotal()),
             "products" => $products
         ];
     }
@@ -147,75 +124,76 @@ class Orders extends Action
     /** @noinspection PhpUnused */
     public function execute()
     {
-        if (!self::getHelp()->getRequest->getParam("mime-type")) {
-            self::getHelp()->getRequest->setParam("mime-type", 'json');
+        if (!$this->helper->getRequest->getParam("mime-type")) {
+            $this->helper->getRequest->setParam("mime-type", 'json');
         }
-        self::$error =  self::getHelp()->getFunc->isParamValid([
-            'key' => 'Required|Key|allow_export',
+        $error =  $this->helper->getFunc->isParamValid([
+            'key' => 'KeyAuth|allow_export',
             'start_date' => 'Required|DateCheck|StartDate',
             'page' => null,
             'customerId' => null
         ]);
 
-        if ($this->status()) {
-            return self::getHelp()->getFunc->readOrWrite(self::$fileName, self::$secondName, $this);
+        if ($error === null) {
+            return $this->helper->getFunc->readOrWrite($this->fileName, $this->secondName, $this);
         }
 
-        return self::getHelp()->getFunc->Output('status', self::$error);
+        return $this->helper->getFunc->Output('status', $error);
     }
 
-    public static function freshData(): array
+    public function freshData(): array
     {
         $or = [];
         $stop = false;
-        self::$params = self::getHelp()->getRequest->getParams();
+        $params = $this->helper->getRequest->getParams();
 
-        if (isset(self::$params['page'])) {
+        if (isset($params['page'])) {
             $stop = true;
         }
 
-        self::$brandAttribute = self::getHelp()->getConfig->getBrandAttribute();
-        self::$params['page'] = (int) (isset(self::$params['page']) ? self::$params['page'] : 1);
-        self::$params['limit'] = (int) (isset(self::$params['limit']) ? self::$params['limit'] : 50);
+        $brandAttribute = $this->helper->getConfig->getBrandAttribute();
+        $this->brandAttribute = $brandAttribute;
+        $params['page'] = $this->helper->getFunc->getPageParam();
+        $params['limit'] = $this->helper->getFunc->getLimitParam();
 
-        self::$data['startDate'] = date(
-            self::getHelp()->getConfig->getDateStart(),
-            strtotime(self::$params['start_date'])
+        $data['startDate'] = date(
+            $this->helper->getConfig->getDateStart(),
+            strtotime($params['start_date'])
         );
 
-        self::$data['endDate'] = date(
-            self::getHelp()->getConfig->getDateEnd(),
-            !isset(self::$params['end_date']) ? time() : strtotime(self::$params['end_date'])
+        $data['endDate'] = date(
+            $this->helper->getConfig->getDateEnd(),
+            !isset($params['end_date']) ? time() : strtotime($params['end_date'])
         );
 
-        self::$data['Orders'] = self::getHelp()->getOrderRepo->getCollection()
-            ->addFieldToFilter('store_id', ['in', self::getHelp()->getFunc->getStoreId()])
-            ->addAttributeToFilter('created_at', ['from' => self::$data['startDate'], 'to' => self::$data['endDate']])
-            ->setPageSize(self::$params['limit'])
+        $data['Orders'] = $this->helper->getOrderRepo->getCollection()
+            ->addFieldToFilter('store_id', ['in', $this->helper->getFunc->getStoreId()])
+            ->addAttributeToFilter('created_at', ['from' => $data['startDate'], 'to' => $data['endDate']])
+            ->setPageSize($params['limit'])
             ->setOrder('created_at', 'ASC');
-        //->addStoreFilter(self::getHelp()->getFunc->getStoreId());
+        //->addStoreFilter($this->helper->getFunc->getStoreId());
 
         if ($stop) {
-            $pages = self::$params['page'];
+            $pages = $params['page'];
         } else {
-            $pages = self::$data['Orders']->getLastPageNumber();
+            $pages = $data['Orders']->getLastPageNumber();
         }
 
         do {
-            self::$data['Orders']->setCurPage(self::$params['page'])->load();
+            $data['Orders']->setCurPage($params['page'])->load();
 
-            if (self::$params['page'] == self::$data['Orders']->getCurPage()) {
-                foreach (self::$data['Orders'] as $orders) {
-                    $o = self::getOrderInfo($orders);
+            if ($params['page'] == $data['Orders']->getCurPage()) {
+                foreach ($data['Orders'] as $orders) {
+                    $o = $this->getOrderInfo($orders);
                     if ($o !== null) {
                         $or[] = $o;
                     }
                 }
             }
 
-            self::$params['page']++;
-            self::$data['Orders']->clear();
-        } while (self::$params['page'] <= $pages);
+            $params['page']++;
+            $data['Orders']->clear();
+        } while ($params['page'] <= $pages);
 
         return $or;
     }

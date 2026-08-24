@@ -1,6 +1,34 @@
+# This repository lives inside a full Magento install, but it only owns the
+# Mktr modules plus the deploy/docs helper files. Ignore the Magento tree by
+# default and explicitly allow the project files below.
+
+*
+
+!.gitignore
+!mktr.sh
+!readme.md
+!themarketer-m2-specs-plan.md
+
+!app/
+!app/code/
+!app/code/Mktr/
+!app/code/Mktr/**
+
+!docs/
+!docs/**
+
+!scripts/
+!scripts/**
+
+!pub/
+!pub/media/
+!pub/media/logo/
+!pub/media/logo/**
+
 .DS_Store
+.idea/
 app/code/Mktr/Google/Google.zip
 app/code/Mktr/Tracker/Tracker.zip
 app/code/Mktr/Tracker/Storage*
-!app/code/Mktr/Tracker/Storage
+!app/code/Mktr/Tracker/Storage/
 !app/code/Mktr/Tracker/Storage/.gitkeep
