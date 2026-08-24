@@ -13,7 +13,7 @@ namespace Mktr\Tracker\Model\Pages;
 use Magento\Review\Model\Rating;
 use Magento\Review\Model\Review;
 use Magento\Store\Api\StoreRepositoryInterface;
-use Magento2\app\code\Mktr\Tracker\Helper\Data;
+use Mktr\Tracker\Helper\Data;
 use Mktr\Tracker\Model\Config;
 use Mktr\Tracker\Model\ReviewLogs;
 

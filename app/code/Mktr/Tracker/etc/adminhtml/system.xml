@@ -27,12 +27,6 @@
                     <label>Enable</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                 </field>
-                <field id="connect" translate="label" type="button" sortOrder="15"
-                       showInDefault="1" showInWebsite="1" showInStore="1">
-                    <label>Connect</label>
-                    <frontend_model>Mktr\Tracker\Block\Adminhtml\System\Config\Connect</frontend_model>
-                    <comment><![CDATA[Sign in to theMarketer and import your credentials automatically.]]></comment>
-                </field>
                 <field id="tracking_key" translate="label" type="obscure" sortOrder="20"
                        showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Tracking API Key</label>

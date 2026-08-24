@@ -12,7 +12,7 @@
 namespace Mktr\Tracker\Model;
 
 use Magento\Store\Api\StoreRepositoryInterface;
-use Magento2\app\code\Mktr\Tracker\Helper\Data;
+use Mktr\Tracker\Helper\Data;
 use Psr\Log\LoggerInterface;
 use Throwable;
 
