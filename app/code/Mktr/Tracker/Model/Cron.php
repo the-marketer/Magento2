@@ -18,7 +18,6 @@ use Throwable;
 
 class Cron
 {
-    private const ORDER_SYNC_DAYS = 7;
     private const ORDER_BATCH_SIZE = 100;
 
     /**
@@ -69,6 +68,7 @@ class Cron
                                     strtotime("+" . $this->helper->getConfig->getUpdateFeed() . " hour");
                             }
                         );
+                        $this->helper->getData->save();
 
                         if ($this->helper->getConfig->getAllowExport() != 0) {
                             $this->runStoreJob(
@@ -112,11 +112,19 @@ class Cron
 
     private function syncRecentOrders($storeId): void
     {
+        if (
+            empty($this->helper->getConfig->getRestKey()) ||
+            empty($this->helper->getConfig->getCustomerId())
+        ) {
+            return;
+        }
+
+        $hours = max(1, (int) $this->helper->getConfig->getUpdateFeed()) * 2;
+        $since = date('Y-m-d H:i:s', strtotime("-{$hours} hours"));
+
         $collection = $this->helper->getOrderRepo->getCollection()
             ->addFieldToFilter('store_id', $storeId)
-            ->addFieldToFilter('created_at', [
-                'from' => date('Y-m-d H:i:s', strtotime('-' . self::ORDER_SYNC_DAYS . ' days'))
-            ])
+            ->addFieldToFilter('created_at', ['from' => $since])
             ->setPageSize(self::ORDER_BATCH_SIZE)
             ->setOrder('entity_id', 'ASC');
 
@@ -133,12 +141,12 @@ class Cron
                     }
 
                     $this->helper->getApi->send('save_order', $payload);
-                    $this->helper->getApi->send('update_order_status', [
-                        'order_number' => $order->getIncrementId(),
-                        'order_status' => $order->getState()
-                    ], false);
                 } catch (Throwable $e) {
-                    continue;
+                    $this->logger->warning('TheMarketer order sync failed', [
+                        'order' => $order->getIncrementId(),
+                        'store_id' => $storeId,
+                        'message' => $e->getMessage()
+                    ]);
                 }
             }
 
@@ -167,6 +175,8 @@ class Cron
             return null;
         }
 
+        $street = $billingAddress->getStreet();
+
         return [
             'number' => $order->getIncrementId(),
             'email_address' => $billingAddress->getEmail(),
@@ -175,7 +185,7 @@ class Cron
             'lastname' => $billingAddress->getLastname(),
             'city' => $billingAddress->getCity(),
             'county' => $billingAddress->getRegion(),
-            'address' => implode(' ', $billingAddress->getStreet()),
+            'address' => is_array($street) ? implode(' ', $street) : (string) $street,
             'discount_value' => $this->helper->getFunc->digit2($order->getDiscountAmount()),
             'discount_code' => $order->getCouponCode() ?? '',
             'shipping' => $this->helper->getFunc->digit2($order->getShippingInclTax()),
