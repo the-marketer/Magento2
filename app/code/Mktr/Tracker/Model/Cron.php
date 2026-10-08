@@ -18,6 +18,8 @@ use Throwable;
 
 class Cron
 {
+    private const ORDER_BATCH_SIZE = 100;
+
     /**
      * @var Data
      */
@@ -66,6 +68,17 @@ class Cron
                                     strtotime("+" . $this->helper->getConfig->getUpdateFeed() . " hour");
                             }
                         );
+                        $this->helper->getData->save();
+
+                        if ($this->helper->getConfig->getAllowExport() != 0) {
+                            $this->runStoreJob(
+                                'orders',
+                                $k->getId(),
+                                function () use ($k) {
+                                    $this->syncRecentOrders($k->getId());
+                                }
+                            );
+                        }
                     }
 
                     if ($this->helper->getConfig->getCronReview() != 0 && $upReview < time()) {
@@ -95,6 +108,91 @@ class Cron
         }
 
         $this->helper->getData->save();
+    }
+
+    private function syncRecentOrders($storeId): void
+    {
+        if (
+            empty($this->helper->getConfig->getRestKey()) ||
+            empty($this->helper->getConfig->getCustomerId())
+        ) {
+            return;
+        }
+
+        $hours = max(1, (int) $this->helper->getConfig->getUpdateFeed()) * 2;
+        $since = date('Y-m-d H:i:s', strtotime("-{$hours} hours"));
+
+        $collection = $this->helper->getOrderRepo->getCollection()
+            ->addFieldToFilter('store_id', $storeId)
+            ->addFieldToFilter('created_at', ['from' => $since])
+            ->setPageSize(self::ORDER_BATCH_SIZE)
+            ->setOrder('entity_id', 'ASC');
+
+        $lastPage = $collection->getLastPageNumber();
+
+        for ($page = 1; $page <= $lastPage; $page++) {
+            $collection->setCurPage($page)->load();
+
+            foreach ($collection as $order) {
+                try {
+                    $payload = $this->buildOrderPayload($order);
+                    if ($payload === null) {
+                        continue;
+                    }
+
+                    $this->helper->getApi->send('save_order', $payload);
+                } catch (Throwable $e) {
+                    $this->logger->warning('TheMarketer order sync failed', [
+                        'order' => $order->getIncrementId(),
+                        'store_id' => $storeId,
+                        'message' => $e->getMessage()
+                    ]);
+                }
+            }
+
+            $collection->clear();
+        }
+    }
+
+    private function buildOrderPayload($order): ?array
+    {
+        $billingAddress = $order->getBillingAddress();
+        if ($billingAddress === null) {
+            return null;
+        }
+
+        $products = [];
+        foreach ($order->getAllVisibleItems() as $item) {
+            $products[] = [
+                'product_id' => $item->getProductId(),
+                'price' => $this->helper->getFunc->digit2($item->getPriceInclTax()),
+                'quantity' => (int) $item->getQtyOrdered(),
+                'variation_sku' => $item->getSku()
+            ];
+        }
+
+        if (empty($products)) {
+            return null;
+        }
+
+        $street = $billingAddress->getStreet();
+
+        return [
+            'number' => $order->getIncrementId(),
+            'email_address' => $billingAddress->getEmail(),
+            'phone' => $this->helper->getFunc->validateTelephone($billingAddress->getTelephone()),
+            'firstname' => $billingAddress->getFirstname(),
+            'lastname' => $billingAddress->getLastname(),
+            'city' => $billingAddress->getCity(),
+            'county' => $billingAddress->getRegion(),
+            'address' => is_array($street) ? implode(' ', $street) : (string) $street,
+            'discount_value' => $this->helper->getFunc->digit2($order->getDiscountAmount()),
+            'discount_code' => $order->getCouponCode() ?? '',
+            'shipping' => $this->helper->getFunc->digit2($order->getShippingInclTax()),
+            'tax' => $this->helper->getFunc->digit2($order->getTaxAmount()),
+            'total_value' => $this->helper->getFunc->digit2($order->getGrandTotal()),
+            'products' => $products
+        ];
     }
 
     private function runStoreJob(string $job, $storeId, callable $callback): void
