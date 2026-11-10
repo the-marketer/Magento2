@@ -126,7 +126,12 @@ class Feed
             ->addStoreFilter($storeId)
             ->addAttributeToFilter('visibility', ['neq' => \Magento\Catalog\Model\Product\Visibility::VISIBILITY_NOT_VISIBLE])
             ->addAttributeToFilter('status', Status::STATUS_ENABLED)
-            ->addAttributeToFilter( ['attribute' => 'price', 'gt' => 0]);
+            // OR-filter: array of condition arrays. Composite products (configurable, bundle, grouped)
+            // usually have no own price attribute, their price comes from children.
+            ->addAttributeToFilter([
+                ['attribute' => 'price', 'gt' => 0],
+                ['attribute' => 'type_id', 'in' => ['configurable', 'bundle', 'grouped']],
+            ], null, 'left');
 
 
         $lastPage = $this->data['products']->getLastPageNumber();
