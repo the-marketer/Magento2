@@ -113,16 +113,17 @@ class Loader extends Template
         }
 
         $lines[] = "
-        window.isLoad = false;
-        if (typeof require !== 'undefined') {
+        window.mktr.watchCart = function () {
+            if (typeof require !== 'function') { return; }
             require(['Magento_Customer/js/customer-data'], function (customerData) {
                 var cart = customerData.get('cart');
                 var count = cart().summary_count;
                 cart.subscribe(function () {
-                    if (cart().summary_count !== count && window.isLoad) { count = cart().summary_count; window.mktr.loadEvents(); } else { window.isLoad = true; }
+                    if (cart().summary_count !== count) { count = cart().summary_count; window.mktr.loadEvents(); }
                 });
             });
-        }
+        };
+        if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', window.mktr.watchCart); } else { window.mktr.watchCart(); }
         setTimeout(window.mktr.loadEvents, 1000);
         ";
         $selector = $this->helper->getConfig->getSelectors();
