@@ -29,6 +29,7 @@
                 <default_stock>0</default_stock>
                 <allow_export>0</allow_export>
                 <stock_source>all</stock_source>
+                <cheapest_variant_price>0</cheapest_variant_price>
                 <selectors/>
             </tracker>
             <attribute>

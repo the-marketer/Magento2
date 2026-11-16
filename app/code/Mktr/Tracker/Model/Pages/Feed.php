@@ -180,7 +180,12 @@ class Feed
         $price = $product->getPriceInfo()->getPrice('regular_price')->getValue();
         $finalPrice = $product->getPriceInfo()->getPrice('final_price')->getValue();
 
-        if (empty((float) $finalPrice) && empty((float) $price)) {
+        // Magento resolves a configurable's price from the cheapest child's raw base price (no currency conversion)
+        $useCheapestVariant = $product->getTypeId() == 'configurable'
+            && $this->helper->getConfig->getCheapestVariantPrice();
+        $cheapest = null;
+
+        if (!$useCheapestVariant && empty((float) $finalPrice) && empty((float) $price)) {
             return false;
         }
         $salePrice = empty((float) $finalPrice) ? $price : $finalPrice;
@@ -279,6 +284,16 @@ class Feed
                         $vSalePrice = $vPrice;
                     }
 
+                    if ($useCheapestVariant) {
+                        $inStock = $stock != 0;
+                        if ($cheapest === null
+                            || ($inStock && !$cheapest['in_stock'])
+                            || ($inStock === $cheapest['in_stock'] && $vSalePrice < $cheapest['sale_price'])
+                        ) {
+                            $cheapest = ['price' => $vPrice, 'sale_price' => $vSalePrice, 'in_stock' => $inStock];
+                        }
+                    }
+
                     $v = [
                         'id' => $p->getId(),
                         'sku' => $p->getSku(),
@@ -302,6 +317,13 @@ class Feed
                     $variations['variation'][] = $v;
                 }
             }
+        }
+
+        if ($cheapest !== null) {
+            $price = $cheapest['price'];
+            $salePrice = $cheapest['sale_price'];
+        } elseif ($useCheapestVariant && empty((float) $price)) {
+            return false;
         }
 
         /** @noinspection DuplicatedCode */
