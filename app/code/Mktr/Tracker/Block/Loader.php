@@ -115,11 +115,17 @@ class Loader extends Template
         $lines[] = "
         window.mktr.watchCart = function () {
             if (typeof require !== 'function') { return; }
-            require(['Magento_Customer/js/customer-data'], function (customerData) {
-                var cart = customerData.get('cart');
-                var count = cart().summary_count;
+            require(['jquery', 'Magento_Customer/js/customer-data'], function (jq, customerData) {
+                var cart = customerData.get('cart'), count = cart().summary_count, invalidated = false;
+                /* customer-data-invalidate fires only on a user POST, never while init() hydrates sections */
+                jq(document).on('customer-data-invalidate', function (event, sectionNames) {
+                    if (sectionNames && sectionNames.indexOf('cart') !== -1) { invalidated = true; }
+                });
                 cart.subscribe(function () {
-                    var newCount = cart().summary_count; if (newCount === count) { return; } var prev = count; count = newCount; if (prev !== undefined) { window.mktr.loadEvents(); }
+                    var newCount = cart().summary_count;
+                    var changed = newCount !== count && (count !== undefined || (invalidated && newCount > 0));
+                    invalidated = false; count = newCount;
+                    if (changed) { window.mktr.loadEvents(); }
                 });
             });
         };

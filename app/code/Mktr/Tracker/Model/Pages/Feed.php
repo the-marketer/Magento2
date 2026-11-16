@@ -130,7 +130,9 @@ class Feed
             ->addAttributeToFilter([
                 ['attribute' => 'price', 'gt' => 0],
                 ['attribute' => 'type_id', 'eq' => 'configurable'],
-            ], null, 'left');
+            ], null, 'left')
+            // Bundle/grouped need their own stock, tax and price handling; left out for now
+            ->addAttributeToFilter('type_id', ['nin' => ['bundle', 'grouped']]);
 
         $lastPage = $this->data['products']->getLastPageNumber();
 
