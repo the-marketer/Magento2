@@ -119,7 +119,7 @@ class Loader extends Template
                 var cart = customerData.get('cart');
                 var count = cart().summary_count;
                 cart.subscribe(function () {
-                    if (cart().summary_count !== count) { count = cart().summary_count; window.mktr.loadEvents(); }
+                    var newCount = cart().summary_count; if (newCount === count) { return; } var prev = count; count = newCount; if (prev !== undefined) { window.mktr.loadEvents(); }
                 });
             });
         };
