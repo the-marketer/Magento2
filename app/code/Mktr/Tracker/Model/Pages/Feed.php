@@ -14,6 +14,7 @@ use Exception;
 use Magento\Catalog\Model\Product\Attribute\Source\Status;
 use Magento\Catalog\Model\Product\Visibility;
 
+use Magento\Framework\Pricing\PriceCurrencyInterface;
 use Magento\Framework\UrlInterface;
 use Mktr\Tracker\Api\SourceItemsBySkuResolverInterface;
 use Mktr\Tracker\Helper\Data;
@@ -39,12 +40,19 @@ class Feed
      */
     private $sourceItemsBySkuResolver;
 
+    /**
+     * @var PriceCurrencyInterface
+     */
+    private $priceCurrency;
+
     public function __construct(
         Data $helper,
-        SourceItemsBySkuResolverInterface $sourceItemsBySkuResolver
+        SourceItemsBySkuResolverInterface $sourceItemsBySkuResolver,
+        PriceCurrencyInterface $priceCurrency
     ) {
         $this->helper = $helper;
         $this->sourceItemsBySkuResolver = $sourceItemsBySkuResolver;
+        $this->priceCurrency = $priceCurrency;
     }
 
     public function getName()
@@ -180,7 +188,12 @@ class Feed
         $price = $product->getPriceInfo()->getPrice('regular_price')->getValue();
         $finalPrice = $product->getPriceInfo()->getPrice('final_price')->getValue();
 
-        // Magento resolves a configurable's price from the cheapest child's raw base price (no currency conversion)
+        if ($product->getTypeId() == 'configurable') {
+            // A configurable's regular price is its cheapest child's raw price in base currency,
+            // while final_price is already in the store currency
+            $price = $this->priceCurrency->convert($price);
+        }
+
         $useCheapestVariant = $product->getTypeId() == 'configurable'
             && $this->helper->getConfig->getCheapestVariantPrice();
         $cheapest = null;
@@ -191,15 +204,9 @@ class Feed
         $salePrice = empty((float) $finalPrice) ? $price : $finalPrice;
 
         $price = empty((float) $price) ? $finalPrice : $price;
+        $saleFromDate = $product->getSpecialFromDate();
+        $saleToDate = $product->getSpecialToDate();
         $taxID = $product->getTaxClassId();
-        if ($taxID) {
-            $price = $this->helper->getTax->getTaxPrice($product, $price, true);
-            $salePrice = $salePrice > 0 ? $this->helper->getTax->getTaxPrice($product, $salePrice, true) : $price;
-        }
-
-        if ($salePrice > $price) {
-            $salePrice = $price;
-        }
 
         $media_gallery = [
             'image'=>[]
@@ -230,6 +237,9 @@ class Feed
         if ($product->getTypeId() == 'configurable') {
             $variants = $product->getTypeInstance()->getUsedProducts($product);
             foreach ($variants as $p) {
+                if ((int) $p->getStatus() !== Status::STATUS_ENABLED) {
+                    continue;
+                }
 
                 $vPrice = $p->getPriceInfo()->getPrice('regular_price')->getValue();
                 if (!empty((float)$vPrice)) {
@@ -275,6 +285,23 @@ class Feed
                     } elseif ($p->isInStock()) { $stock = 1;
                     } else { $stock = 0; }
 
+                    if ($useCheapestVariant) {
+                        $salable = (bool) $p->isSalable();
+                        if ($cheapest === null
+                            || ($salable && !$cheapest['salable'])
+                            || ($salable === $cheapest['salable'] && $vSalePrice < $cheapest['sale_price'])
+                        ) {
+                            // Pre-tax values: the parent's own tax class is applied below
+                            $cheapest = [
+                                'price' => $vPrice,
+                                'sale_price' => $vSalePrice,
+                                'salable' => $salable,
+                                'from' => $p->getSpecialFromDate(),
+                                'to' => $p->getSpecialToDate(),
+                            ];
+                        }
+                    }
+
                     if ($taxID) {
                         $vPrice = $this->helper->getTax->getTaxPrice($p, $vPrice, true);
                         $vSalePrice = $vSalePrice > 0 ? $this->helper->getTax->getTaxPrice($p, $vSalePrice, true) : $vPrice;
@@ -282,16 +309,6 @@ class Feed
 
                     if ($vSalePrice > $vPrice) {
                         $vSalePrice = $vPrice;
-                    }
-
-                    if ($useCheapestVariant) {
-                        $inStock = $stock != 0;
-                        if ($cheapest === null
-                            || ($inStock && !$cheapest['in_stock'])
-                            || ($inStock === $cheapest['in_stock'] && $vSalePrice < $cheapest['sale_price'])
-                        ) {
-                            $cheapest = ['price' => $vPrice, 'sale_price' => $vSalePrice, 'in_stock' => $inStock];
-                        }
                     }
 
                     $v = [
@@ -322,8 +339,19 @@ class Feed
         if ($cheapest !== null) {
             $price = $cheapest['price'];
             $salePrice = $cheapest['sale_price'];
+            $saleFromDate = $cheapest['from'];
+            $saleToDate = $cheapest['to'];
         } elseif ($useCheapestVariant && empty((float) $price)) {
             return false;
+        }
+
+        if ($taxID) {
+            $price = $this->helper->getTax->getTaxPrice($product, $price, true);
+            $salePrice = $salePrice > 0 ? $this->helper->getTax->getTaxPrice($product, $salePrice, true) : $price;
+        }
+
+        if ($salePrice > $price) {
+            $salePrice = $price;
         }
 
         /** @noinspection DuplicatedCode */
@@ -377,8 +405,8 @@ class Feed
             'acquisition_price' => 0,
             'price' => $this->helper->getFunc->digit2($price),
             'sale_price' => $this->helper->getFunc->digit2($salePrice),
-            'sale_price_start_date' => $this->helper->getFunc->correctDate($product->getSpecialFromDate()),
-            'sale_price_end_date' => $this->helper->getFunc->correctDate($product->getSpecialToDate()),
+            'sale_price_start_date' => $this->helper->getFunc->correctDate($saleFromDate),
+            'sale_price_end_date' => $this->helper->getFunc->correctDate($saleToDate),
             'availability' => $stock,
             'stock' => $MasterQty,
             'media_gallery' => $media_gallery,

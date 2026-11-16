@@ -157,6 +157,8 @@ class Func
             } else {
                 $this->storeId = $this->storeManager->getStore()->getId();
             }
+            // Config may have cached the scope earlier (e.g. during the auth check), before ?store= was applied
+            $this->config->setScopeCode($this->storeId);
         }
 
         return $this->storeId;
