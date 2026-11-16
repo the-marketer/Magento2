@@ -181,6 +181,23 @@ class Feed
         return $MasterQty;
     }
 
+    /**
+     * Stock-based salability that also works outside the frontend area (cron),
+     * where isSalable() only checks the product status.
+     */
+    private function isVariantSalable($variant, $qty): bool
+    {
+        $stockItem = $this->helper->getStockRepo->getStockItem($variant->getId());
+        if (!$stockItem->getIsInStock()) {
+            return false;
+        }
+        if (!$stockItem->getManageStock() || $stockItem->getBackorders()) {
+            return true;
+        }
+
+        return $qty > 0;
+    }
+
     public function buildProduct($product)
     {
         $listCategory = $this->helper->getManager->buildMultiCategory($product->getCategoryIds());
@@ -286,7 +303,7 @@ class Feed
                     } else { $stock = 0; }
 
                     if ($useCheapestVariant) {
-                        $salable = (bool) $p->isSalable();
+                        $salable = $this->isVariantSalable($p, $qty);
                         if ($cheapest === null
                             || ($salable && !$cheapest['salable'])
                             || ($salable === $cheapest['salable'] && $vSalePrice < $cheapest['sale_price'])
