@@ -71,7 +71,7 @@ class Loader extends Template
             return '';
         }
 
-        $lines = ['window.mktr = window.mktr || { pending: [], retryCount: 0, version: "1.2.3" };', 'window.dataLayer = window.dataLayer || [];'];
+        $lines = ['window.mktr = window.mktr || { pending: [], retryCount: 0, version: "1.2.5" };', 'window.dataLayer = window.dataLayer || [];'];
         $lines[] = 'window.mktr.debug = function () { if (typeof dataLayer != "undefined") { for (let i of dataLayer) { console.log("Mktr", "Google", i); } } };';
         $lines[] = 'window.mktr.eventPush = function (data = {}) {
             if (typeof dataLayer != "undefined") { dataLayer.push(data); } else {
