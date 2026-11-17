@@ -122,12 +122,17 @@ class Feed
         $this->data['products'] = $this->helper->getProductCol->create()
             ->setPageSize($this->params['limit'])
             ->setOrder('created_at', 'ASC')
+            ->setOrder('entity_id', 'ASC')
             ->addAttributeToSelect(['id'])
             ->addStoreFilter($storeId)
             ->addAttributeToFilter('visibility', ['neq' => \Magento\Catalog\Model\Product\Visibility::VISIBILITY_NOT_VISIBLE])
             ->addAttributeToFilter('status', Status::STATUS_ENABLED)
-            ->addAttributeToFilter( ['attribute' => 'price', 'gt' => 0]);
-
+            ->addAttributeToFilter([
+                ['attribute' => 'price', 'gt' => 0],
+                ['attribute' => 'type_id', 'eq' => 'configurable'],
+            ], null, 'left')
+            // Bundle/grouped need their own stock, tax and price handling; left out for now
+            ->addAttributeToFilter('type_id', ['nin' => ['bundle', 'grouped']]);
 
         $lastPage = $this->data['products']->getLastPageNumber();
 
