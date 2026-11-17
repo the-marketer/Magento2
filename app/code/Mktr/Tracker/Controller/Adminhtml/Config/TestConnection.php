@@ -240,9 +240,17 @@ class TestConnection extends Action
     {
         $referers = [];
         foreach (['web/secure/base_url', 'web/unsecure/base_url'] as $path) {
-            $referer = trim((string)$this->scopeConfig->getValue($path, $scopeType, $scopeCode));
-            if ($referer !== '' && !in_array($referer, $referers, true)) {
-                $referers[] = $referer;
+            $url = trim((string)$this->scopeConfig->getValue($path, $scopeType, $scopeCode));
+            if ($url === '') {
+                continue;
+            }
+            // The tracking key may be registered for the domain without scheme, so try those forms too
+            $withoutScheme = (string)preg_replace('#^[a-z][a-z0-9+.-]*://#i', '', $url);
+            $host = explode('/', $withoutScheme, 2)[0];
+            foreach ([$url, $withoutScheme, $host] as $referer) {
+                if ($referer !== '' && !in_array($referer, $referers, true)) {
+                    $referers[] = $referer;
+                }
             }
         }
 
