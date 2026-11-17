@@ -184,11 +184,15 @@ class Feed
     /**
      * Stock-based salability that also works outside the frontend area (cron),
      * where isSalable() only checks the product status.
+     *
+     * @param bool|null $sourceInStock MSI source status for the configured stock source; null without MSI.
+     *                                 The legacy is_in_stock flag only follows the default source.
      */
-    private function isVariantSalable($variant, $qty): bool
+    private function isVariantSalable($variant, $qty, $sourceInStock = null): bool
     {
         $stockItem = $this->helper->getStockRepo->getStockItem($variant->getId());
-        if (!$stockItem->getIsInStock()) {
+        $inStock = $sourceInStock ?? (bool) $stockItem->getIsInStock();
+        if (!$inStock) {
             return false;
         }
         if (!$stockItem->getManageStock() || $stockItem->getBackorders()) {
@@ -285,15 +289,23 @@ class Feed
                             }
                         }
                     }
+                    $sourceInStock = null;
                     if ($this->checkMSI()) {
                         $qty = 0;
+                        $sourceInStock = false;
                         foreach ($this->sourceItemsBySkuResolver->execute($p->getSku()) as $item) {
                             $qty = $this->AddQTY($item, $qty);
+                            // 1 = SourceItemInterface::STATUS_IN_STOCK (MSI may not be installed)
+                            if (($this->sourceMsi === 'all' || $item->getSourceCode() === $this->sourceMsi)
+                                && (int) $item->getStatus() === 1
+                            ) {
+                                $sourceInStock = true;
+                            }
                         }
                     } else {
                         $qty = (int) ($this->helper->getStockRepo->getStockItem($p->getId())->getQty() ?? 0);
                     }
-                    
+
                     $MasterQty = $MasterQty + (int) $qty;
 
                     /** @noinspection DuplicatedCode */
@@ -303,7 +315,7 @@ class Feed
                     } else { $stock = 0; }
 
                     if ($useCheapestVariant) {
-                        $salable = $this->isVariantSalable($p, $qty);
+                        $salable = $this->isVariantSalable($p, $qty, $sourceInStock);
                         if ($cheapest === null
                             || ($salable && !$cheapest['salable'])
                             || ($salable === $cheapest['salable'] && $vSalePrice < $cheapest['sale_price'])

@@ -349,9 +349,6 @@ class FuncTest extends TestCase
         );
     }
 
-    /**
-     * @param array<string, mixed> $params
-     */
     public function testGetStoreIdAppliesRequestedStoreToConfigScope(): void
     {
         $request = $this->createMock(HttpRequest::class);
@@ -382,6 +379,9 @@ class FuncTest extends TestCase
         $this->assertSame(3, $func->getStoreId());
     }
 
+    /**
+     * @param array<string, mixed> $params
+     */
     private function configureValidationDependencies(
         array $params,
         ?string $authorization = null,
