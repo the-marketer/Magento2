@@ -52,6 +52,7 @@ importScripts("https://t.themarketer.com/firebase.js");';
         'default_stock' => 'mktr_tracker/tracker/default_stock',
         'allow_export' => 'mktr_tracker/tracker/allow_export',
         'stock_source' => 'mktr_tracker/tracker/stock_source',
+        'cheapest_variant_price' => 'mktr_tracker/tracker/cheapest_variant_price',
         'selectors' => 'mktr_tracker/tracker/selectors',
         'brand' => 'mktr_tracker/attribute/brand',
         'color' => 'mktr_tracker/attribute/color',
@@ -67,6 +68,7 @@ importScripts("https://t.themarketer.com/firebase.js");';
         'push_status' => null,
         'default_stock' => null,
         'allow_export' => null,
+        'cheapest_variant_price' => null,
         'selectors' => null,
         'brand' => null,
         'color' => null,
@@ -314,6 +316,12 @@ importScripts("https://t.themarketer.com/firebase.js");';
     public function getAllowExport(): int
     {
         return (int) $this->getValue('allow_export');
+    }
+
+    /** @noinspection PhpUnused */
+    public function getCheapestVariantPrice(): int
+    {
+        return (int) $this->getValue('cheapest_variant_price');
     }
 
     /** @noinspection PhpUnused */

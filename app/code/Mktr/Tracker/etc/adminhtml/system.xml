@@ -112,6 +112,12 @@
                     <label>Default Stock if negative Stock Value</label>
                     <source_model>Mktr\Tracker\Model\Option\Stock</source_model>
                 </field>
+                <field id="cheapest_variant_price" translate="label" type="select" sortOrder="42"
+                       showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Configurable price from cheapest variant</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <comment><![CDATA[In the product feed, configurable products get the price and sale price of their cheapest enabled variant, preferring variants that can be bought. Cached feeds may keep the old prices for up to 24 hours.]]></comment>
+                </field>
                 <field id="allow_export" translate="label" type="select" sortOrder="43"
                        showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Allow orders export</label>

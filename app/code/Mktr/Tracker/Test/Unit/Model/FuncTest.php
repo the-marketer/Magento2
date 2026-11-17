@@ -349,6 +349,36 @@ class FuncTest extends TestCase
         );
     }
 
+    public function testGetStoreIdAppliesRequestedStoreToConfigScope(): void
+    {
+        $request = $this->createMock(HttpRequest::class);
+        $request->method('getParam')->willReturnCallback(
+            static function (string $name, $default = null) {
+                return $name === 'store' ? 'secondary' : $default;
+            }
+        );
+
+        $store = $this->createMock(StoreInterface::class);
+        $store->method('getId')->willReturn(3);
+
+        $storeManager = $this->createMock(StoreManagerInterface::class);
+        $storeManager->method('getStore')->with('secondary')->willReturn($store);
+        $storeManager->expects($this->once())->method('setCurrentStore')->with(3);
+
+        $config = $this->createMock(Config::class);
+        $config->expects($this->once())->method('setScopeCode')->with(3);
+
+        $func = new Func(
+            $config,
+            $request,
+            $storeManager,
+            $this->createMock(FileSystem::class),
+            $this->createMock(RawFactory::class)
+        );
+
+        $this->assertSame(3, $func->getStoreId());
+    }
+
     /**
      * @param array<string, mixed> $params
      */

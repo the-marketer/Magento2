@@ -14,6 +14,7 @@ use Exception;
 use Magento\Catalog\Model\Product\Attribute\Source\Status;
 use Magento\Catalog\Model\Product\Visibility;
 
+use Magento\Framework\Pricing\PriceCurrencyInterface;
 use Magento\Framework\UrlInterface;
 use Mktr\Tracker\Api\SourceItemsBySkuResolverInterface;
 use Mktr\Tracker\Helper\Data;
@@ -39,12 +40,19 @@ class Feed
      */
     private $sourceItemsBySkuResolver;
 
+    /**
+     * @var PriceCurrencyInterface
+     */
+    private $priceCurrency;
+
     public function __construct(
         Data $helper,
-        SourceItemsBySkuResolverInterface $sourceItemsBySkuResolver
+        SourceItemsBySkuResolverInterface $sourceItemsBySkuResolver,
+        PriceCurrencyInterface $priceCurrency
     ) {
         $this->helper = $helper;
         $this->sourceItemsBySkuResolver = $sourceItemsBySkuResolver;
+        $this->priceCurrency = $priceCurrency;
     }
 
     public function getName()
@@ -173,6 +181,31 @@ class Feed
         return $MasterQty;
     }
 
+    /**
+     * Stock-based salability that also works outside the frontend area (cron),
+     * where isSalable() only checks the product status.
+     *
+     * @param bool|null $sourceInStock MSI source status for the configured stock source; null without MSI.
+     *                                 The legacy is_in_stock flag only follows the default source.
+     */
+    private function isVariantSalable($variant, $qty, $sourceInStock = null): bool
+    {
+        $stockItem = $this->helper->getStockRepo->getStockItem($variant->getId());
+        // Checked first: MSI source status can be 0 (or missing) when stock isn't managed
+        if (!$stockItem->getManageStock()) {
+            return true;
+        }
+        $inStock = $sourceInStock ?? (bool) $stockItem->getIsInStock();
+        if (!$inStock) {
+            return false;
+        }
+        if ($stockItem->getBackorders()) {
+            return true;
+        }
+
+        return $qty > 0;
+    }
+
     public function buildProduct($product)
     {
         $listCategory = $this->helper->getManager->buildMultiCategory($product->getCategoryIds());
@@ -180,21 +213,25 @@ class Feed
         $price = $product->getPriceInfo()->getPrice('regular_price')->getValue();
         $finalPrice = $product->getPriceInfo()->getPrice('final_price')->getValue();
 
-        if (empty((float) $finalPrice) && empty((float) $price)) {
+        if ($product->getTypeId() == 'configurable') {
+            // A configurable's regular price is its cheapest child's raw price in base currency,
+            // while final_price is already in the store currency
+            $price = $this->priceCurrency->convert($price);
+        }
+
+        $useCheapestVariant = $product->getTypeId() == 'configurable'
+            && $this->helper->getConfig->getCheapestVariantPrice();
+        $cheapest = null;
+
+        if (!$useCheapestVariant && empty((float) $finalPrice) && empty((float) $price)) {
             return false;
         }
         $salePrice = empty((float) $finalPrice) ? $price : $finalPrice;
 
         $price = empty((float) $price) ? $finalPrice : $price;
+        $saleFromDate = $product->getSpecialFromDate();
+        $saleToDate = $product->getSpecialToDate();
         $taxID = $product->getTaxClassId();
-        if ($taxID) {
-            $price = $this->helper->getTax->getTaxPrice($product, $price, true);
-            $salePrice = $salePrice > 0 ? $this->helper->getTax->getTaxPrice($product, $salePrice, true) : $price;
-        }
-
-        if ($salePrice > $price) {
-            $salePrice = $price;
-        }
 
         $media_gallery = [
             'image'=>[]
@@ -225,6 +262,9 @@ class Feed
         if ($product->getTypeId() == 'configurable') {
             $variants = $product->getTypeInstance()->getUsedProducts($product);
             foreach ($variants as $p) {
+                if ((int) $p->getStatus() !== Status::STATUS_ENABLED) {
+                    continue;
+                }
 
                 $vPrice = $p->getPriceInfo()->getPrice('regular_price')->getValue();
                 if (!empty((float)$vPrice)) {
@@ -253,15 +293,23 @@ class Feed
                             }
                         }
                     }
+                    $sourceInStock = null;
                     if ($this->checkMSI()) {
                         $qty = 0;
+                        $sourceInStock = false;
                         foreach ($this->sourceItemsBySkuResolver->execute($p->getSku()) as $item) {
                             $qty = $this->AddQTY($item, $qty);
+                            // 1 = SourceItemInterface::STATUS_IN_STOCK (MSI may not be installed)
+                            if (($this->sourceMsi === 'all' || $item->getSourceCode() === $this->sourceMsi)
+                                && (int) $item->getStatus() === 1
+                            ) {
+                                $sourceInStock = true;
+                            }
                         }
                     } else {
                         $qty = (int) ($this->helper->getStockRepo->getStockItem($p->getId())->getQty() ?? 0);
                     }
-                    
+
                     $MasterQty = $MasterQty + (int) $qty;
 
                     /** @noinspection DuplicatedCode */
@@ -269,6 +317,23 @@ class Feed
                     } elseif ($p->isInStock() && $qty == 0) { $stock = 2;
                     } elseif ($p->isInStock()) { $stock = 1;
                     } else { $stock = 0; }
+
+                    if ($useCheapestVariant) {
+                        $salable = $this->isVariantSalable($p, $qty, $sourceInStock);
+                        if ($cheapest === null
+                            || ($salable && !$cheapest['salable'])
+                            || ($salable === $cheapest['salable'] && $vSalePrice < $cheapest['sale_price'])
+                        ) {
+                            // Pre-tax values: the parent's own tax class is applied below
+                            $cheapest = [
+                                'price' => $vPrice,
+                                'sale_price' => $vSalePrice,
+                                'salable' => $salable,
+                                'from' => $p->getSpecialFromDate(),
+                                'to' => $p->getSpecialToDate(),
+                            ];
+                        }
+                    }
 
                     if ($taxID) {
                         $vPrice = $this->helper->getTax->getTaxPrice($p, $vPrice, true);
@@ -302,6 +367,24 @@ class Feed
                     $variations['variation'][] = $v;
                 }
             }
+        }
+
+        if ($cheapest !== null) {
+            $price = $cheapest['price'];
+            $salePrice = $cheapest['sale_price'];
+            $saleFromDate = $cheapest['from'];
+            $saleToDate = $cheapest['to'];
+        } elseif ($useCheapestVariant && empty((float) $price)) {
+            return false;
+        }
+
+        if ($taxID) {
+            $price = $this->helper->getTax->getTaxPrice($product, $price, true);
+            $salePrice = $salePrice > 0 ? $this->helper->getTax->getTaxPrice($product, $salePrice, true) : $price;
+        }
+
+        if ($salePrice > $price) {
+            $salePrice = $price;
         }
 
         /** @noinspection DuplicatedCode */
@@ -355,8 +438,8 @@ class Feed
             'acquisition_price' => 0,
             'price' => $this->helper->getFunc->digit2($price),
             'sale_price' => $this->helper->getFunc->digit2($salePrice),
-            'sale_price_start_date' => $this->helper->getFunc->correctDate($product->getSpecialFromDate()),
-            'sale_price_end_date' => $this->helper->getFunc->correctDate($product->getSpecialToDate()),
+            'sale_price_start_date' => $this->helper->getFunc->correctDate($saleFromDate),
+            'sale_price_end_date' => $this->helper->getFunc->correctDate($saleToDate),
             'availability' => $stock,
             'stock' => $MasterQty,
             'media_gallery' => $media_gallery,
