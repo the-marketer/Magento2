@@ -333,7 +333,7 @@ class Func
                                 break;
                             case "Key":
                             case "KeyAuth":
-                                if (!$this->isAuthorizedByBearerToken()) {
+                                if (!$this->isAuthorizedByBearerToken() && !$this->isAuthorizedByQueryKey()) {
                                     $error = "Incorrect Authorization";
                                 }
                                 break;
@@ -360,6 +360,17 @@ class Func
         }
 
         return $error;
+    }
+
+    /**
+     * Legacy ?key= authentication, kept so integrations that don't send the header yet keep working.
+     */
+    private function isAuthorizedByQueryKey(): bool
+    {
+        $key = $this->request->getParam('key');
+        $expectedToken = (string) $this->config->getRestKey();
+
+        return is_string($key) && $key !== '' && $expectedToken !== '' && hash_equals($expectedToken, $key);
     }
 
     private function isAuthorizedByBearerToken(): bool
