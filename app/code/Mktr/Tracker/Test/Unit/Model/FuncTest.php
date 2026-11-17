@@ -173,19 +173,27 @@ class FuncTest extends TestCase
         $this->assertSame('Incorrect Rule Type', $this->func->isParamValid(['type' => 'RuleCheck']));
     }
 
-    public function testLegacyKeyRuleRequiresBearerHeader(): void
+    public function testQueryStringKeyStillAuthenticatesKeyRules(): void
     {
         $this->configureValidationDependencies(['key' => 'rest-secret']);
+
+        $this->assertNull($this->func->isParamValid(['key' => 'Key']));
+        $this->assertNull($this->func->isParamValid(['key' => 'KeyAuth']));
+    }
+
+    public function testWrongQueryStringKeyIsRejected(): void
+    {
+        $this->configureValidationDependencies(['key' => 'wrong-secret']);
 
         $this->assertSame(
             'Incorrect Authorization',
-            $this->func->isParamValid(['key' => 'Key'])
+            $this->func->isParamValid(['key' => 'KeyAuth'])
         );
     }
 
-    public function testQueryStringKeyDoesNotAuthenticateKeyAuthRule(): void
+    public function testEmptyRestKeyRejectsEmptyQueryStringKey(): void
     {
-        $this->configureValidationDependencies(['key' => 'rest-secret']);
+        $this->configureValidationDependencies(['key' => ''], null, '');
 
         $this->assertSame(
             'Incorrect Authorization',

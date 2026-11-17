@@ -128,7 +128,7 @@ class Subscribes
             false
         );
 
-        return json_decode($response->getContent());
+        return json_decode((string) $response->getContent());
     }
 
     /**
