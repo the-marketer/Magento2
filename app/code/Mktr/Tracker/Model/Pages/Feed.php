@@ -191,11 +191,15 @@ class Feed
     private function isVariantSalable($variant, $qty, $sourceInStock = null): bool
     {
         $stockItem = $this->helper->getStockRepo->getStockItem($variant->getId());
+        // Checked first: MSI source status can be 0 (or missing) when stock isn't managed
+        if (!$stockItem->getManageStock()) {
+            return true;
+        }
         $inStock = $sourceInStock ?? (bool) $stockItem->getIsInStock();
         if (!$inStock) {
             return false;
         }
-        if (!$stockItem->getManageStock() || $stockItem->getBackorders()) {
+        if ($stockItem->getBackorders()) {
             return true;
         }
 
